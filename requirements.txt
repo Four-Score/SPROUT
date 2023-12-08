@@ -20,3 +20,4 @@ llama-hub
 pymilvus
 google_oauth2_tool
 pyowm
+torch
