@@ -40,7 +40,7 @@ if user_id:
     print("type of ud", type(user_data))
     # Use the user_data as needed in your application
 else:
-    st.error("No user ID found. Please sign up or log in.")
+    user_data = ""
 
 import toml
 
