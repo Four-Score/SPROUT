@@ -17,6 +17,6 @@ tqdm==4.66.1
 trulens-eval==0.18.3
 gcloud
 llama-hub
-
+pymilvus
 google_oauth2_tool
 pyowm
