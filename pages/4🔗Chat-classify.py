@@ -28,12 +28,14 @@ st.title("SPROUT - Farm 🌾🌱 ")
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
 
+import toml
 
-credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-# Convert the string back to a JSON object
-credentials_dict = json.loads(credentials_json)
+# Access the credentials
+config = st.secrets["google_credentials"]
+
 # Construct a credentials object from the dictionary
-credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+credentials = service_account.Credentials.from_service_account_info(config)
+
 
 
 # API key
