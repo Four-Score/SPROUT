@@ -20,9 +20,13 @@ from langchain.utilities import GoogleSearchAPIWrapper
 load_dotenv()
 
 # API key and Vertex AI initialization
-credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-credentials_dict = json.loads(credentials_json)
-credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+import toml
+
+# Access the credentials
+config = st.secrets["google_credentials"]
+
+# Construct a credentials object from the dictionary
+credentials = service_account.Credentials.from_service_account_info(config)
 aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
 
 # Page configuration
