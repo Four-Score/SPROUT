@@ -6,6 +6,8 @@ import json
 from dotenv import load_dotenv
 
 load_dotenv()  # load environment variables from .env
+import toml
+
 
 def findneighbor_sample(embeddings):
   # The AI Platform services require regional API endpoints.
@@ -13,12 +15,11 @@ def findneighbor_sample(embeddings):
 
   # create a service account with `Vertex AI User` role granted in IAM page.
   # download the service account key https://developers.google.com/identity/protocols/oauth2/service-account#authorizingrequests
-  credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-
-  # Convert the string back to a JSON object
-  credentials_dict = json.loads(credentials_json)
+# Access the credentials
+  config = st.secrets["google_credentials"]
+  
   # Construct a credentials object from the dictionary
-  credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+  credentials = service_account.Credentials.from_service_account_info(config)
   client_options = {
       "api_endpoint": "231746582.us-central1-145895176016.vdb.vertexai.goog"
   }
