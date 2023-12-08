@@ -11,10 +11,13 @@ import json
 
 # Load environment variables from .env file
 load_dotenv()
+import toml
+config = st.secrets["google_credentials"]
+# Construct a credentials object from the dictionary
 
+creds = service_account.Credentials.from_service_account_info(config)
 # Parse the service account credentials from the environment variable
-service_account_info = json.loads(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-creds = service_account.Credentials.from_service_account_info(service_account_info)
+
 
 # Define the function to make a prediction
 def make_prediction(image_bytes):
