@@ -11,7 +11,11 @@ from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
 
-
+# Imports main tools:
+from trulens_eval import TruChain, Feedback, Tru, LiteLLM
+from trulens_eval import feedback, Select, Feedback
+tru = Tru()
+tru.reset_database()
 
 import os
 import json
@@ -88,25 +92,47 @@ executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, mem
 
 
 
+hugs = feedback.Huggingface()
 
-# Chat
-if prompt := st.chat_input("Ask a question about planting"):
-    with st.chat_message("user"):
-        st.write(prompt)
+f_lang_match = Feedback(hugs.language_match).on_input_output()
+pii = Feedback(hugs.pii_detection).on_output()
+pos = Feedback(hugs.positive_sentiment).on_output()
+tox = Feedback(hugs.toxic).on_output() 
 
-    with st.chat_message("assistant"):
-        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        if uploaded_file is not None:
-            bytes_data = uploaded_file.getvalue()
-            st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
-            st.write("")
 
-            # Call the classifier with the image bytes
-            predictions = make_prediction(bytes_data)
-            prediction_text = "This is the result of the classifier on the image uploaded, indicating the potential plant status: " + ", ".join([str(prediction) for prediction in predictions])
-            prompt = prompt + " " + prediction_text
-            print(prompt)
-        else:
-            prompt = prompt
-        response = executor(prompt, callbacks=[st_cb])
-        st.write(response["output"])
+tru_recorder = TruChain(executor,
+    app_id='Chain1_ChatApplication',
+    feedbacks=[f_lang_match, pii, pos, tox])
+
+with tru_recorder as recording:
+    # Chat
+    if prompt := st.chat_input("Ask a question about planting"):
+        with st.chat_message("user"):
+            st.write(prompt)
+
+        with st.chat_message("assistant"):
+            st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+            if uploaded_file is not None:
+                bytes_data = uploaded_file.getvalue()
+                st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
+                st.write("")
+
+                # Call the classifier with the image bytes
+                predictions = make_prediction(bytes_data)
+                prediction_text = "This is the result of the classifier on the image uploaded, indicating the potential plant status: " + ", ".join([str(prediction) for prediction in predictions])
+                prompt = prompt + " " + prediction_text
+                print(prompt)
+            else:
+                prompt = prompt
+            response = executor(prompt, callbacks=[st_cb])
+            st.write(response["output"])
+
+# Displaying Results
+with st.expander("Detailed Evaluation Results"):
+    records, feedback = tru.get_records_and_feedback(app_ids=[])
+    st.dataframe(records)
+    
+with st.container():
+    st.header("Evaluation")    
+    st.dataframe(tru.get_leaderboard(app_ids=[]))
+    st.dataframe(feedback)
