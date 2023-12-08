@@ -45,7 +45,19 @@ aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION
 
 
 # Create a Vertex AI agent
-msgs = StreamlitChatMessageHistory()
+# Function to get a unique session key based on the current page
+def get_session_key():
+    # Assuming you have some logic to determine the current page
+    current_page = st.session_state.current_page
+    return f"chat_history_{current_page}"
+
+# Initialize or retrieve chat history specific to the current page
+session_key = get_session_key()
+if session_key not in st.session_state:
+    st.session_state[session_key] = StreamlitChatMessageHistory()
+msgs = st.session_state[session_key]
+
+#msgs = StreamlitChatMessageHistory()
 memory = ConversationBufferMemory(chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output")
 
 if len(msgs.messages) == 0 or st.sidebar.button("Reset chat history"):
