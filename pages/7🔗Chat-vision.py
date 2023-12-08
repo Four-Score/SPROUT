@@ -73,12 +73,18 @@ def preprocess_image(uploaded_image):
     try:
         with st.spinner("Processing image... Please wait"):
             print("Starting image processing...")
-
+            
             # Save the uploaded image to a temporary file
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
                 shutil.copyfileobj(uploaded_image, tmp_file)
                 tmp_file_path = tmp_file.name
                 print(f"Image saved to temporary file: {tmp_file_path}")
+            from PIL import Image
+
+            # In your preprocess_image function
+            img = Image.open(tmp_file_path).convert("RGB")
+            img.save(tmp_file_path)  # Overwrite the temp file with the converted image
+
 
             # Prepare the image document with the file path
             image_document = ImageDocument(image_path=tmp_file_path)
