@@ -13,6 +13,13 @@ from langchain.utilities import GoogleSearchAPIWrapper
 
 from vertexembed import encode_images_to_embeddings
 from vectorSearch import findneighbor_sample
+from utils import get_user_data_from_database
+
+# Imports main tools:
+from trulens_eval import TruChain, Feedback, Tru, LiteLLM
+from trulens_eval import feedback, Select, Feedback
+tru = Tru()
+tru.reset_database()
 
 
 import os
@@ -41,7 +48,16 @@ credentials = service_account.Credentials.from_service_account_info(config)
 # API key
 aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION"), credentials=credentials)
 
+# Use the user_id from session state
+user_id = st.session_state.get('user_id')
 
+if user_id:
+    # Fetch the user data using the user_id
+    user_data = str(get_user_data_from_database(user_id))
+    print("type of ud", type(user_data))
+    # Use the user_data as needed in your application
+else:
+    st.error("No user ID found. Please sign up or log in.")
 
 
 # Create a Vertex AI agent
@@ -91,24 +107,49 @@ executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, mem
 
 
 
-# Chat
-if prompt := st.chat_input("Ask a question about farming"):
-    with st.chat_message("user"):
-        st.write(prompt)
 
-    with st.chat_message("assistant"):
-        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        if uploaded_file is not None:
-            bytes_data = uploaded_file.getvalue()
-            st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
-            st.write("")
+hugs = feedback.Huggingface()
 
-            # Call the function with the image bytes and a label
-            embedding = encode_images_to_embeddings(image_bytes=bytes_data, label='Uploaded Image')
-            nearest = str(findneighbor_sample(embedding['image_embedding']))
-            prompt = prompt + "this is the result of vector search on image uploaded, indicating the potential plant disease:" + nearest
-            print(prompt)
-        else:
-            prompt = prompt
-        response = executor(prompt, callbacks=[st_cb])
-        st.write(response["output"])
+f_lang_match = Feedback(hugs.language_match).on_input_output()
+pii = Feedback(hugs.pii_detection).on_output()
+pos = Feedback(hugs.positive_sentiment).on_output()
+tox = Feedback(hugs.toxic).on_output() 
+
+
+tru_recorder = TruChain(executor,
+    app_id='Chain1_ChatApplication',
+    feedbacks=[f_lang_match, pii, pos, tox])
+
+with tru_recorder as recording:
+    # Chat
+    if prompt := st.chat_input("Ask a question about farming"):
+        with st.chat_message("user"):
+            st.write(prompt)
+
+        with st.chat_message("assistant"):
+            st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+            if uploaded_file is not None:
+                bytes_data = uploaded_file.getvalue()
+                st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
+                st.write("")
+
+                # Call the function with the image bytes and a label
+                embedding = encode_images_to_embeddings(image_bytes=bytes_data, label='Uploaded Image')
+                nearest = str(findneighbor_sample(embedding['image_embedding']))
+                print("nearest  ", nearest, type(nearest))
+                prompt = prompt + "this is info about user's plant(s): " + user_data + " this is the result of vector search on image uploaded, indicating the potential plant disease:" + nearest
+                print(prompt)
+            else:
+                prompt = prompt
+            response = executor(prompt, callbacks=[st_cb])
+            st.write(response["output"])
+
+# Displaying Results
+with st.expander("Detailed Evaluation Results"):
+    records, feedback = tru.get_records_and_feedback(app_ids=[])
+    st.dataframe(records)
+    
+with st.container():
+    st.header("Evaluation")    
+    st.dataframe(tru.get_leaderboard(app_ids=[]))
+    st.dataframe(feedback)
