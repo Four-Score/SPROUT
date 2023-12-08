@@ -18,10 +18,13 @@ from google.oauth2 import service_account
 
 # Load environment variables from .env file
 load_dotenv()
+import toml
+# Access the credentials
+config = st.secrets["google_credentials"]
 
-# Parse the service account credentials from the environment variable
-service_account_info = json.loads(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-creds = service_account.Credentials.from_service_account_info(service_account_info)
+# Construct a credentials object from the dictionary
+
+creds = service_account.Credentials.from_service_account_info(config)
 
 
 client_options = {"api_endpoint": f"{os.getenv('LOCATION')}-aiplatform.googleapis.com"}
