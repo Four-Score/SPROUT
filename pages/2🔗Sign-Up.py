@@ -23,12 +23,12 @@ def show_signup():
             
             if existing_user(user_id):
                 st.session_state['user'] = username
-                st.session_state['tenant_name'] = user_id # Store tenant name
+                st.session_state['user_id'] = user_id # Store tenant name
                 st.success("Logged in successfully! Let's chat!")
             else:
                 create_new_user(user_id)
                 st.session_state['user'] = username
-                st.session_state['tenant_name'] = user_id  # Store tenant name
+                st.session_state['user_id'] = user_id  # Store tenant name
 
                 # Create new tenant logic..
                 st.success("Signup successful! Let's get to know you then chat!")
