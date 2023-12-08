@@ -55,6 +55,9 @@ def search_satellite_images(api_key, polygon_id):
 # Streamlit app logic
 def main():
     st.title("Agricultural Monitoring App")
+    user_location = st.text_input("Enter your location (city, country):")
+    if user_location:  # Check if user has entered a location
+        st.session_state['user_location'] = user_location  # Save the location in session state
 
     # Map initialization
     m = folium.Map(location=[24.8607, 67.0011], zoom_start=10)  # Karachis coordinates
@@ -86,6 +89,8 @@ def main():
                     
                     processed_soil_data = process_soil_data(soil_data)
                     if process_soil_data:
+                        st.session_state['soil_data'] = processed_soil_data
+
                         st.subheader("Soil Data")
                         for key, value in processed_soil_data.items():
                             st.text(f"{key}: {value}")
