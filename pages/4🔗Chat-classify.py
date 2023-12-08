@@ -10,6 +10,7 @@ from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
+from utils import get_user_data_from_database
 
 # Imports main tools:
 from trulens_eval import TruChain, Feedback, Tru, LiteLLM
@@ -31,6 +32,15 @@ st.title("SPROUT - Plant 🪴🌱 ")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
+# Use the user_id from session state
+user_id = st.session_state.get('user_id')
+if user_id:
+    # Fetch the user data using the user_id
+    user_data = str(get_user_data_from_database(user_id))
+    print("type of ud", type(user_data))
+    # Use the user_data as needed in your application
+else:
+    st.error("No user ID found. Please sign up or log in.")
 
 import toml
 
@@ -120,7 +130,7 @@ with tru_recorder as recording:
                 # Call the classifier with the image bytes
                 predictions = make_prediction(bytes_data)
                 prediction_text = "This is the result of the classifier on the image uploaded, indicating the potential plant status: " + ", ".join([str(prediction) for prediction in predictions])
-                prompt = prompt + " " + prediction_text
+                prompt = prompt + "this is info about user's plant(s): " + user_data + " " + prediction_text
                 print(prompt)
             else:
                 prompt = prompt
@@ -134,5 +144,7 @@ with st.expander("Detailed Evaluation Results"):
     
 with st.container():
     st.header("Evaluation")    
+    st.dataframe(tru.get_leaderboard(app_ids=[]))
+    st.dataframe(feedback)    
     st.dataframe(tru.get_leaderboard(app_ids=[]))
     st.dataframe(feedback)
