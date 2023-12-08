@@ -13,8 +13,8 @@ from langchain.utilities import GoogleSearchAPIWrapper
 from utils import get_user_data_from_database
 
 # Imports main tools:
-from trulens_eval import TruChain, Feedback, Tru, LiteLLM
-from trulens_eval import feedback, Select, Feedback
+from trulens_eval import TruChain, Feedback, Tru
+from trulens_eval import feedback, Feedback
 tru = Tru()
 tru.reset_database()
 
