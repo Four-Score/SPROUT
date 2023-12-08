@@ -21,7 +21,6 @@ load_dotenv()
 import toml
 # Access the credentials
 config = st.secrets["google_credentials"]
-
 # Construct a credentials object from the dictionary
 
 creds = service_account.Credentials.from_service_account_info(config)
