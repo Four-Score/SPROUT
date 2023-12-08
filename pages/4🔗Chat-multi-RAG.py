@@ -48,8 +48,6 @@ aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION
 
 
 msgs = StreamlitChatMessageHistory()
-msgs.clear()
-
 memory = ConversationBufferMemory(chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output")
 
 if len(msgs.messages) == 0 or st.sidebar.button("Reset chat history"):
