@@ -25,7 +25,7 @@ load_dotenv()  # load environment variables from .env
 
 # Page configuration
 st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
-st.title("SPROUT - Farm 🌾🌱 ")
+st.title("SPROUT - Plant 🪴🌱 ")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
