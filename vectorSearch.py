@@ -1,3 +1,5 @@
+import streamlit as st
+
 from google.cloud import aiplatform_v1beta1
 from google.oauth2 import service_account
 from vertexembed import encode_images_to_embeddings
