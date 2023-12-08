@@ -65,6 +65,13 @@ def update_user_info(tempData):
     data=tempData
     )
 
+def get_user_data_from_database(user_id):
+    res = client.get(
+    collection_name=COLLECTION_NAME,
+    ids=[user_id]
+    )
+    info = str([item["user_info"] for item in res])
+    return info
 
 # CONVERT PLANT DATA TO STRING
 def save_plant_data_to_string(plant_data_list):
