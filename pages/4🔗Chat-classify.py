@@ -23,15 +23,17 @@ st.title("SPROUT - Farm 🌾🌱")
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 # Initialize plants_info outside of the conditional block
 plants_info = []
-# Use the user_id from session state
 user_id = st.session_state.get('user_id')
 if user_id:
     user_data = get_user_data_from_database(user_id)
     try:
         plants_info = json.loads(user_data)
-        plant_names = [plant.get("name", "Unnamed Plant") for plant in plants_info if isinstance(plant, dict)]
-    except json.JSONDecodeError:
-        st.error("Error parsing user data")
+        if isinstance(plants_info, list):
+            plant_names = [plant.get("name", "Unnamed Plant") if isinstance(plant, dict) else str(plant) for plant in plants_info]
+        else:
+            raise ValueError("Invalid format for plants_info")
+    except (json.JSONDecodeError, ValueError) as e:
+        st.error(f"Error parsing user data: {e}")
         plant_names = []
 else:
     st.error("No user ID found. Please sign up or log in.")
@@ -40,7 +42,7 @@ else:
 selected_plant = st.radio("Select a plant:", plant_names)
 
 # Find the data for the selected plant
-selected_plant_data = next((plant for plant in plants_info if plant.get("name") == selected_plant), None)
+selected_plant_data = next((plant for plant in plants_info if isinstance(plant, dict) and plant.get("name") == selected_plant), None)
 
 # Access the credentials
 config = st.secrets["google_credentials"]
