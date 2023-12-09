@@ -86,7 +86,7 @@ tools = [GoogleSearch]
 chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=tools)
 executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
 
-    prompt = st.chat_input(f"Ask a question about {selected_plant_name}:")
+prompt = st.chat_input(f"Ask a question about {selected_plant_name}:")
     with st.chat_message("user"):
         st.write(prompt)
 
