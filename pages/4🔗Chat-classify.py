@@ -20,23 +20,40 @@ st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
 st.title("SPROUT - Farm 🌾🌱")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
+plants_info = []
+
+# Fetch the user_id from the session state
 user_id = st.session_state.get('user_id')
-plant_names = []
-selected_plant_data = None  # Initialize selected_plant_data
-
 if user_id:
-    user_data_str = get_user_data_from_database(user_id)
-    # ... (code to parse user_data_str and extract plant_names)
-
-    if plant_names:
-        selected_plant_name = st.radio("Select a plant:", plant_names, index=0)
-
-        # Find the data for the selected plant
-        selected_plant_data = next((plant_data_str for plant_data_str in plants_data_str if "'name': '{}'".format(selected_plant_name) in plant_data_str), None)
-    else:
-        st.error("No plant names available. Please check if plant data exists.")
+    # Fetch the user data from the database
+    user_data = get_user_data_from_database(user_id)
+    
+    # Parse the user data to extract the plant data
+    try:
+        plants_info = json.loads(user_data)
+        # Ensure we have a list of dicts, each dict containing a plant's data
+        if not isinstance(plants_info, list) or not all(isinstance(plant, dict) for plant in plants_info):
+            raise ValueError("User data is not in the expected format")
+        
+        # Generate a list of plant names for the radio buttons
+        plant_names = [plant['name'] for plant in plants_info if 'name' in plant]
+    except (json.JSONDecodeError, ValueError) as e:
+        st.error(f"Error parsing user data: {e}")
+        plant_names = []
 else:
     st.error("No user ID found. Please sign up or log in.")
+    plant_names = []
+
+# If no plant names found, display an error
+if not plant_names:
+    st.error("No plant data available. Please add plant data.")
+else:
+    # Display radio buttons for plant names
+    selected_plant_name = st.radio("Select a plant:", plant_names)
+    
+    # Get the full data of the selected plant
+    selected_plant_data = next((plant for plant in plants_info if plant['name'] == selected_plant_name), None)
+
 
 config = st.secrets["google_credentials"]
 credentials = service_account.Credentials.from_service_account_info(config)
@@ -69,16 +86,18 @@ tools = [GoogleSearch]
 chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=tools)
 executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
 
-if prompt := st.chat_input("Ask a question about your plant"):
+f prompt := st.chat_input(f"Ask a question about {selected_plant_name}:"):
     with st.chat_message("user"):
         st.write(prompt)
 
     with st.chat_message("assistant"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        augmented_prompt = prompt
-
+        
+        # Augment the prompt with specific plant data if a plant is selected
         if selected_plant_data:
-            augmented_prompt += f" [Plant info: {selected_plant_data}]"
+            # Convert selected plant data to JSON string
+            plant_info = json.dumps(selected_plant_data)
+            augmented_prompt = f"{prompt} [Plant info: {plant_info}]"
         else:
             augmented_prompt = prompt
 
