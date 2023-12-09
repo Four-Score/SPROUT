@@ -16,34 +16,40 @@ from dotenv import load_dotenv
 
 load_dotenv()  # load environment variables from .env
 
-# Page configuration
 st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
 st.title("SPROUT - Farm 🌾🌱")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
-plants_info = []
+
+# Retrieve the user ID from session state
 user_id = st.session_state.get('user_id')
-if user_id:
-    user_data = get_user_data_from_database(user_id)
+
+# Initialize an empty list for plant names
+plant_names = []
+
+# Function to parse the user data from database and extract plant names
+def extract_plant_names(user_data_str):
     try:
-        plants_info = json.loads(user_data)
-        if isinstance(plants_info, list):
-            # Extract only plant names for the radio buttons
-            plant_names = [plant.get("name", "Unnamed Plant") for plant in plants_info if isinstance(plant, dict)]
-        else:
-            raise ValueError("Invalid format for plants_info")
-    except (json.JSONDecodeError, ValueError) as e:
+        # Convert the string representation of list to actual list
+        user_data_list = json.loads(user_data_str)
+        # Extract plant names from each dictionary in the list
+        return [plant.get("name") for plant in user_data_list if isinstance(plant, dict) and plant.get("name")]
+    except json.JSONDecodeError as e:
         st.error(f"Error parsing user data: {e}")
-        plant_names = []
-else:
-    st.error("No user ID found. Please sign up or log in.")
-    plant_names = []
+        return []
 
-selected_plant = st.radio("Select a plant:", plant_names)
+if user_id:
+    # Fetch the user data from the database
+    user_data_str = get_user_data_from_database(user_id)
+    # Extract plant names for radio button display
+    plant_names = extract_plant_names(user_data_str)
 
-# Find the data for the selected plant
-# This will fetch only the selected plant's data
-selected_plant_data = next((plant for plant in plants_info if isinstance(plant, dict) and plant.get("name") == selected_plant), None)
+if not plant_names:
+    st.error("No plant data available. Please add plant data.")
+
+# Display radio buttons for plant names
+selected_plant_name = st.radio("Select a plant:", plant_names, index=0)
+
 
 # Access the credentials
 config = st.secrets["google_credentials"]
@@ -92,7 +98,7 @@ if prompt := st.chat_input(f"Ask a question about {selected_plant}:"):
         if selected_plant_data:
             # Convert selected plant data to JSON string
             plant_info = json.dumps(selected_plant_data)
-            augmented_prompt = f"{prompt} [Plant info: {plant_info}]"
+           augmented_prompt = f"{prompt} [Selected plant: {selected_plant_name}]"
         else:
             augmented_prompt = prompt
         if uploaded_file is not None:
