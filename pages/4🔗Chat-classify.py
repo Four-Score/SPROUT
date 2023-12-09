@@ -21,7 +21,6 @@ st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
 st.title("SPROUT - Farm 🌾🌱")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
-# Initialize plants_info outside of the conditional block
 plants_info = []
 user_id = st.session_state.get('user_id')
 if user_id:
@@ -29,7 +28,8 @@ if user_id:
     try:
         plants_info = json.loads(user_data)
         if isinstance(plants_info, list):
-            plant_names = [plant.get("name", "Unnamed Plant") if isinstance(plant, dict) else str(plant) for plant in plants_info]
+            # Extract only plant names for the radio buttons
+            plant_names = [plant.get("name", "Unnamed Plant") for plant in plants_info if isinstance(plant, dict)]
         else:
             raise ValueError("Invalid format for plants_info")
     except (json.JSONDecodeError, ValueError) as e:
@@ -42,6 +42,7 @@ else:
 selected_plant = st.radio("Select a plant:", plant_names)
 
 # Find the data for the selected plant
+# This will fetch only the selected plant's data
 selected_plant_data = next((plant for plant in plants_info if isinstance(plant, dict) and plant.get("name") == selected_plant), None)
 
 # Access the credentials
@@ -80,7 +81,7 @@ chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=to
 executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
 
 # Chat
-if prompt := st.chat_input("Ask a question about your plant"):
+if prompt := st.chat_input(f"Ask a question about {selected_plant}:"):
     with st.chat_message("user"):
         st.write(prompt)
 
@@ -89,11 +90,11 @@ if prompt := st.chat_input("Ask a question about your plant"):
         
         # Augment the prompt with specific plant data
         if selected_plant_data:
+            # Convert selected plant data to JSON string
             plant_info = json.dumps(selected_plant_data)
             augmented_prompt = f"{prompt} [Plant info: {plant_info}]"
         else:
             augmented_prompt = prompt
-
         if uploaded_file is not None:
             bytes_data = uploaded_file.getvalue()
             st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
