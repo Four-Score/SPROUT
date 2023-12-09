@@ -1,45 +1,117 @@
-from dotenv import load_dotenv
-import os
 import streamlit as st
-from google.cloud import aiplatform
-from google.oauth2 import service_account
-import base64
-from google.cloud.aiplatform.gapic.schema import predict as schema_predict
-from PIL import Image
-import io
+from langchain.agents import ConversationalChatAgent, AgentExecutor
+from langchain.callbacks import StreamlitCallbackHandler
+from langchain.llms import VertexAI
+from langchain.chat_models import ChatVertexAI
+
+
+from langchain.memory import ConversationBufferMemory
+from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
+
+from langchain.tools import Tool
+from langchain.utilities import GoogleSearchAPIWrapper
+
+from vertexembed import encode_images_to_embeddings
+from vectorSearch import findneighbor_sample
+from utils import get_user_data_from_database
+
+
+import os
 import json
+from google.cloud import aiplatform
+import vertexai
+from google.oauth2 import service_account
 
-# Load environment variables from .env file
-load_dotenv()
+from dotenv import load_dotenv
+load_dotenv()  # load environment variables from .env
 
-# Parse the service account credentials from the environment variable
-service_account_info = json.loads(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-creds = service_account.Credentials.from_service_account_info(service_account_info)
+# Page configuration
+st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
+st.title("SPROUT - Farm 🌾🌱 ")
 
-# Define the function to make a prediction
-def make_prediction(image_bytes):
-    client_options = {"api_endpoint": f"{os.getenv('LOCATION')}-aiplatform.googleapis.com"}
-    client = aiplatform.gapic.PredictionServiceClient(client_options=client_options, credentials=creds)
+uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
+
+
+import toml
+
+# Access the credentials
+config = st.secrets["google_credentials"]# Convert the string back to a JSON object
+credentials_dict = json.loads(credentials_json)
+# Construct a credentials object from the dictionary
+credentials = service_account.Credentials.from_service_account_info(config)
+
+# API key
+aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION"), credentials=credentials)
+
+# Use the user_id from session state
+user_id = st.session_state.get('user_id')
+
+if user_id:
+    # Fetch the user data using the user_id
+    user_data = str(get_user_data_from_database(user_id))
+    print("type of ud", type(user_data))
+    # Use the user_data as needed in your application
+else:
+    st.error("No user ID found. Please sign up or log in.")
+
+
+# Create a Vertex AI agent
+msgs = StreamlitChatMessageHistory()
+memory = ConversationBufferMemory(chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output")
+
+if len(msgs.messages) == 0 or st.sidebar.button("Reset chat history"):
+    msgs.clear()
     
-    encoded_content = base64.b64encode(image_bytes).decode("utf-8")
-    instance = schema_predict.instance.ImageClassificationPredictionInstance(
-        content=encoded_content,
-    ).to_value()
-    instances = [instance]
-    parameters = schema_predict.params.ImageClassificationPredictionParams(
-        confidence_threshold=0.5,
-        max_predictions=5,
-    ).to_value()
-    endpoint = client.endpoint_path(
-        project=os.getenv("PROJECT_ID_CODE"),
-        location=os.getenv("LOCATION"),
-        endpoint=os.getenv("ENDPOINT_ID")
-    )
-    response = client.predict(endpoint=endpoint, instances=instances, parameters=parameters)
+avatars = {"human": "user", "ai": "assistant"}
 
-    # Parse the response to make it human-readable
-    predictions = []
-    for prediction in response.predictions:
-        predictions.append(dict(prediction))
+for idx, msg in enumerate(msgs.messages):
+    with st.chat_message(avatars[msg.type]):
+        st.write(msg.content)
 
-    return predictions
+# Vertex AI model and tools
+llm = VertexAI()
+# Uses text - bison model
+
+chat_model = ChatVertexAI(llm=llm)
+# Uses chat - bison model
+
+# TOOLS
+#Search
+search = GoogleSearchAPIWrapper()
+GoogleSearch = Tool(
+    name="Google Search",
+    description="Search Google for recent results and updated information on famring methods, and practices",
+    func=search.run,
+)
+
+
+
+# Tools (includes query engine)
+tools = [GoogleSearch]
+
+
+chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=tools)
+executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
+
+# Chat
+if prompt := st.chat_input("Ask a question about farming"):
+    with st.chat_message("user"):
+        st.write(prompt)
+
+    with st.chat_message("assistant"):
+        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+        if uploaded_file is not None:
+            bytes_data = uploaded_file.getvalue()
+            st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
+            st.write("")
+
+            # Call the function with the image bytes and a label
+            embedding = encode_images_to_embeddings(image_bytes=bytes_data, label='Uploaded Image')
+            nearest = str(findneighbor_sample(embedding['image_embedding']))
+            print("nearest  ", nearest, type(nearest))
+            prompt = prompt + "this is info about user's plant(s): " + user_data + " this is the result of vector search on image uploaded, indicating the potential plant disease:" + nearest
+            print(prompt)
+        else:
+            prompt = prompt
+        response = executor(prompt, callbacks=[st_cb])
+        st.write(response["output"])
