@@ -21,7 +21,8 @@ st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
 st.title("SPROUT - Farm 🌾🌱")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
-
+# Initialize plants_info outside of the conditional block
+plants_info = []
 # Use the user_id from session state
 user_id = st.session_state.get('user_id')
 if user_id:
