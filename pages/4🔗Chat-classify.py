@@ -20,31 +20,24 @@ st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
 st.title("SPROUT - Farm 🌾🌱")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
-
 user_id = st.session_state.get('user_id')
 plant_names = []
+selected_plant_data = None  # Initialize selected_plant_data
 
 if user_id:
     user_data_str = get_user_data_from_database(user_id)
+    # ... (code to parse user_data_str and extract plant_names)
 
-    # Parse the string representation of plant data
-    try:
-        # Split the string into individual plant data strings
-        plants_data_str = user_data_str.strip().split("\n")
-        for plant_data_str in plants_data_str:
-            # Extract the plant name from each string
-            start = plant_data_str.find("'name': ") + len("'name': ")
-            end = plant_data_str.find(",", start)
-            plant_name = plant_data_str[start:end].strip("' ")
-            if plant_name:
-                plant_names.append(plant_name)
-    except Exception as e:
-        st.error(f"Error parsing user data: {e}")
+    if plant_names:
+        selected_plant_name = st.radio("Select a plant:", plant_names, index=0)
 
-    if not plant_names:
+        # Find the data for the selected plant
+        selected_plant_data = next((plant_data_str for plant_data_str in plants_data_str if "'name': '{}'".format(selected_plant_name) in plant_data_str), None)
+    else:
         st.error("No plant names available. Please check if plant data exists.")
 else:
     st.error("No user ID found. Please sign up or log in.")
+
 config = st.secrets["google_credentials"]
 credentials = service_account.Credentials.from_service_account_info(config)
 
@@ -84,9 +77,7 @@ if prompt := st.chat_input("Ask a question about your plant"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
         augmented_prompt = prompt
 
-        # selected_plant_data is now a string
         if selected_plant_data:
-            # Directly append the string data
             augmented_prompt += f" [Plant info: {selected_plant_data}]"
         else:
             augmented_prompt = prompt
