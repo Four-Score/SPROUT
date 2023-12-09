@@ -36,7 +36,6 @@ import toml
 
 # Access the credentials
 config = st.secrets["google_credentials"]# Convert the string back to a JSON object
-credentials_dict = json.loads(credentials_json)
 # Construct a credentials object from the dictionary
 credentials = service_account.Credentials.from_service_account_info(config)
 
