@@ -22,31 +22,27 @@ st.title("SPROUT - Farm 🌾🌱")
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
 user_id = st.session_state.get('user_id')
+plant_names = []
+
 if user_id:
     user_data = get_user_data_from_database(user_id)
-    if user_data:
-        try:
-            plants_info = json.loads(user_data)
-            if isinstance(plants_info, list):
-                plant_names = [plant["name"] for plant in plants_info if "name" in plant]
-            else:
-                plant_names = []  # Reset to empty if not a list
-        except json.JSONDecodeError:
-            st.error("Error loading user data. Please check the data format.")
-            plant_names = []
-    else:
-        st.warning("No plant data found for this user.")
-        plant_names = []
-else:
-    st.error("User not logged in.")
-    plant_names = []
+    try:
+        # Attempt to parse the string of user data into a Python object
+        plants_info = json.loads(user_data)
+        
+        # Check if the parsed data is a list of dictionaries
+        if isinstance(plants_info, list) and all(isinstance(item, dict) for item in plants_info):
+            # Generate a list of plant names
+            plant_names = [item.get('name', 'Unnamed Plant') for item in plants_info]
+        else:
+            st.error("User data is not in the expected format. Expected a list of dictionaries.")
+    except json.JSONDecodeError as e:
+        st.error(f"Error parsing user data: {e}")
 
-if plant_names:
-    selected_plant_name = st.radio("Select a plant:", plant_names)
-    selected_plant_data = next((plant for plant in plants_info if plant["name"] == selected_plant_name), None)
+    if not plant_names:
+        st.error("No plant names available. Please check if plant data exists.")
 else:
-    selected_plant_name = None
-    selected_plant_data = None
+    st.error("No user ID found. Please sign up or log in.")
 
 config = st.secrets["google_credentials"]
 credentials = service_account.Credentials.from_service_account_info(config)
