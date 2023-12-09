@@ -1,4 +1,4 @@
-import streamlit as st
+iimport streamlit as st
 import json
 from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.callbacks import StreamlitCallbackHandler
@@ -30,7 +30,11 @@ user_data = get_user_data_from_database(user_id)
 # Extract plant names from user_data
 try:
     plants_data = json.loads(user_data)
-    plant_names = [plant.get("name", "Unnamed Plant") for plant in plants_data]
+    if isinstance(plants_data, list) and all(isinstance(plant, dict) for plant in plants_data):
+        plant_names = [plant.get("name", "Unnamed Plant") for plant in plants_data]
+    else:
+        st.error("Invalid plant data format")
+        plant_names = []
 except json.JSONDecodeError:
     st.error("Error parsing user data")
     plant_names = []
