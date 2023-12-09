@@ -8,7 +8,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
-from utils import get_user_data, get_user_plants  # Assuming these are the correct functions
+from utils import get_user_data_from_database, save_plant_data_to_string
 from classify import make_prediction
 from google.oauth2 import service_account
 from google.cloud import aiplatform 
@@ -25,8 +25,19 @@ st.title("SPROUT - Plant 🪴🌱")
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
 # Retrieve user data from database
-user_data = get_user_data()  # Assuming this function retrieves the current user's data
-selected_plants = get_user_plants(user_data)  # Assuming this function gets plants from user data
+# For the demonstration, assuming a user ID is provided or retrieved from another source
+user_id = "some_user_id"  # Replace with actual logic to retrieve user ID
+user_data = get_user_data_from_database(user_id)
+
+# Assuming the user data contains plant information in a JSON string format
+# Parse the JSON string to get plant information
+try:
+    user_plants = json.loads(user_data).get("plants", [])
+except json.JSONDecodeError:
+    st.error("Error parsing user data")
+    user_plants = []
+
+selected_plants = st.multiselect("Select your plants:", user_plants)
 
 # Initialize LangChain with Vertex AI
 config = st.secrets["google_credentials"]
