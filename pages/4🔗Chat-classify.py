@@ -113,4 +113,4 @@ if prompt := st.chat_input("Ask a question about farming"):
         else:
             prompt = prompt
         response = executor(prompt, callbacks=[st_cb])
-        st.write(response["output"])v
+        st.write(response["output"])
