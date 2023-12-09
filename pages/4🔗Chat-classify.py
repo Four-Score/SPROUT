@@ -87,18 +87,16 @@ chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=to
 executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
 
 # Chat
-if prompt := st.chat_input(f"Ask a question about {selected_plant}:"):
+if prompt := st.chat_input("Ask a question about your plant"):
     with st.chat_message("user"):
-        st.write(prompt)
+        st.write(prompt)  # Make sure indentation is consistent here
 
     with st.chat_message("assistant"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        
-        # Augment the prompt with specific plant data
-        if selected_plant_data:
-            # Convert selected plant data to JSON string
-            plant_info = json.dumps(selected_plant_data)
-           augmented_prompt = f"{prompt} [Selected plant: {selected_plant_name}]"
+        # Ensure this block is indented at the same level as the previous block
+        if selected_plant_name:  # This line should be at the same indentation level as the line above
+            # This line should be indented one level deeper than the if statement
+            augmented_prompt = f"{prompt} [Selected plant: {selected_plant_name}]"
         else:
             augmented_prompt = prompt
         if uploaded_file is not None:
