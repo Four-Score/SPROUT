@@ -1,8 +1,5 @@
 import streamlit as st
 import json
-import os
-from google.oauth2 import service_account
-from dotenv import load_dotenv
 from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.callbacks import StreamlitCallbackHandler
 from langchain.llms import VertexAI
@@ -13,18 +10,16 @@ from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
 from utils import get_user_data_from_database
 from classify import make_prediction
+from google.oauth2 import service_account
+import os
+from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Page configuration
 st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
-st.title("SPROUT - Farm 🌾🌱 ")
-
-# Parse the service account credentials from the environment variable
-credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-credentials_dict = json.loads(credentials_json)
-credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+st.title("SPROUT - Plant 🪴🌱")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
@@ -46,15 +41,17 @@ else:
     selected_plants = []
 
 # Initialize LangChain with Vertex AI
+config = st.secrets["google_credentials"]
+credentials = service_account.Credentials.from_service_account_info(config)
 aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION"), credentials=credentials)
 
-# Vertex AI model and tools
+# Create a Vertex AI agent
 msgs = StreamlitChatMessageHistory()
 memory = ConversationBufferMemory(chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output")
 
 if len(msgs.messages) == 0 or st.sidebar.button("Reset chat history"):
     msgs.clear()
-    
+
 avatars = {"human": "user", "ai": "assistant"}
 
 for idx, msg in enumerate(msgs.messages):
@@ -64,11 +61,11 @@ for idx, msg in enumerate(msgs.messages):
 llm = VertexAI()
 chat_model = ChatVertexAI(llm=llm)
 
-# Tools
+# Tools and Agent Setup
 search = GoogleSearchAPIWrapper()
 GoogleSearch = Tool(
     name="Google Search",
-    description="Search Google for recent results and updated information on farming methods, and practices",
+    description="Search Google for recent results and updated information on farming methods and practices",
     func=search.run,
 )
 tools = [GoogleSearch]
@@ -93,8 +90,8 @@ if prompt := st.chat_input("Ask a question about planting"):
             bytes_data = uploaded_file.getvalue()
             st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
             predictions = make_prediction(bytes_data)
-            prediction_text = "This is the result of the classifier on the image uploaded, indicating the potential plant status: " + ", ".join([str(prediction) for prediction in predictions])
-            prompt = prompt + " " + prediction_text
+            prediction_text = "Classifier result: " + ", ".join([str(prediction) for prediction in predictions])
+            prompt += " " + prediction_text
 
         response = executor(prompt, callbacks=[st_cb])
         st.write(response["output"])
