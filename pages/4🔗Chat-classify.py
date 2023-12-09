@@ -8,9 +8,10 @@ from langchain.memory import ConversationBufferMemory
 from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
-from utils import get_user_data_from_database
+from utils import get_user_data, get_user_plants  # Assuming these are the correct functions
 from classify import make_prediction
 from google.oauth2 import service_account
+from google.cloud import aiplatform 
 import os
 from dotenv import load_dotenv
 
@@ -23,22 +24,9 @@ st.title("SPROUT - Plant 🪴🌱")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
-# Function to display plant selection
-def display_plant_selection(user_data):
-    if user_data:
-        user_plants = json.loads(user_data).get("plants", [])
-        selected_plants = st.multiselect("Select your plants:", user_plants)
-        return selected_plants
-    return []
-
-# Use the user_id from session state
-user_id = st.session_state.get('user_id')
-if user_id:
-    user_data = get_user_data_from_database(user_id)
-    selected_plants = display_plant_selection(user_data)
-else:
-    user_data = ""
-    selected_plants = []
+# Retrieve user data from database
+user_data = get_user_data()  # Assuming this function retrieves the current user's data
+selected_plants = get_user_plants(user_data)  # Assuming this function gets plants from user data
 
 # Initialize LangChain with Vertex AI
 config = st.secrets["google_credentials"]
