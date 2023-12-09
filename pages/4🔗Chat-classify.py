@@ -21,44 +21,38 @@ st.title("SPROUT - Farm 🌾🌱")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
-# Retrieve the user ID from session state
 user_id = st.session_state.get('user_id')
-
-# Initialize an empty list for plant names
-plant_names = []
-
-# Function to parse the user data from database and extract plant names
-def extract_plant_names(user_data_str):
-    try:
-        # Convert the string representation of list to actual list
-        user_data_list = json.loads(user_data_str)
-        # Extract plant names from each dictionary in the list
-        return [plant.get("name") for plant in user_data_list if isinstance(plant, dict) and plant.get("name")]
-    except json.JSONDecodeError as e:
-        st.error(f"Error parsing user data: {e}")
-        return []
-
 if user_id:
-    # Fetch the user data from the database
-    user_data_str = get_user_data_from_database(user_id)
-    # Extract plant names for radio button display
-    plant_names = extract_plant_names(user_data_str)
+    user_data = get_user_data_from_database(user_id)
+    if user_data:
+        try:
+            plants_info = json.loads(user_data)
+            if isinstance(plants_info, list):
+                plant_names = [plant["name"] for plant in plants_info if "name" in plant]
+            else:
+                plant_names = []  # Reset to empty if not a list
+        except json.JSONDecodeError:
+            st.error("Error loading user data. Please check the data format.")
+            plant_names = []
+    else:
+        st.warning("No plant data found for this user.")
+        plant_names = []
+else:
+    st.error("User not logged in.")
+    plant_names = []
 
-if not plant_names:
-    st.error("No plant data available. Please add plant data.")
+if plant_names:
+    selected_plant_name = st.radio("Select a plant:", plant_names)
+    selected_plant_data = next((plant for plant in plants_info if plant["name"] == selected_plant_name), None)
+else:
+    selected_plant_name = None
+    selected_plant_data = None
 
-# Display radio buttons for plant names
-selected_plant_name = st.radio("Select a plant:", plant_names, index=0)
-
-
-# Access the credentials
 config = st.secrets["google_credentials"]
 credentials = service_account.Credentials.from_service_account_info(config)
 
-# API key
 aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION"), credentials=credentials)
 
-# Create a Vertex AI agent
 msgs = StreamlitChatMessageHistory()
 memory = ConversationBufferMemory(chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output")
 
@@ -74,7 +68,6 @@ for idx, msg in enumerate(msgs.messages):
 llm = VertexAI()
 chat_model = ChatVertexAI(llm=llm)
 
-# Tools
 search = GoogleSearchAPIWrapper()
 GoogleSearch = Tool(
     name="Google Search",
@@ -86,17 +79,18 @@ tools = [GoogleSearch]
 chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=tools)
 executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
 
-# Chat
 if prompt := st.chat_input("Ask a question about your plant"):
     with st.chat_message("user"):
-        st.write(prompt)  # Make sure indentation is consistent here
+        st.write(prompt)
 
     with st.chat_message("assistant"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        # Ensure this block is indented at the same level as the previous block
-        if selected_plant_name:  # This line should be at the same indentation level as the line above
-            # This line should be indented one level deeper than the if statement
-            augmented_prompt = f"{prompt} [Selected plant: {selected_plant_name}]"
+        augmented_prompt = prompt
+
+        if selected_plant_data:
+            plant_info = json.dumps(selected_plant_data)
+            augmented_prompt += f" [Plant info: {plant_info}]"
+
         else:
             augmented_prompt = prompt
         if uploaded_file is not None:
