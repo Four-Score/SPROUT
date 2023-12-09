@@ -8,8 +8,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
-from utils import get_user_data_from_database, save_plant_data_to_string
-from classify import make_prediction
+from utils import get_user_data_from_database, make_prediction, embed_info
 from google.oauth2 import service_account
 from google.cloud import aiplatform 
 import os
@@ -24,20 +23,19 @@ st.title("SPROUT - Plant 🪴🌱")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
-# Retrieve user data from database
-# For the demonstration, assuming a user ID is provided or retrieved from another source
-user_id = "some_user_id"  # Replace with actual logic to retrieve user ID
+# Assuming the user_id is retrieved from the user's login session
+user_id = "user123"  # Replace this with the actual logic to retrieve the logged-in user's ID
 user_data = get_user_data_from_database(user_id)
 
-# Assuming the user data contains plant information in a JSON string format
-# Parse the JSON string to get plant information
+# Extract plant names from user_data
 try:
-    user_plants = json.loads(user_data).get("plants", [])
+    plants_data = json.loads(user_data)
+    plant_names = [plant.get("name", "Unnamed Plant") for plant in plants_data]
 except json.JSONDecodeError:
     st.error("Error parsing user data")
-    user_plants = []
+    plant_names = []
 
-selected_plants = st.multiselect("Select your plants:", user_plants)
+selected_plant = st.selectbox("Select a plant:", plant_names)
 
 # Initialize LangChain with Vertex AI
 config = st.secrets["google_credentials"]
@@ -81,16 +79,14 @@ if prompt := st.chat_input("Ask a question about planting"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
 
         # Augment the prompt with selected plant information
-        if selected_plants:
-            plant_info = " User's selected plants: " + ", ".join(selected_plants)
-            prompt += plant_info
+        augmented_prompt = f"{prompt} [Selected plant: {selected_plant}]"
 
         if uploaded_file is not None:
             bytes_data = uploaded_file.getvalue()
             st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
             predictions = make_prediction(bytes_data)
             prediction_text = "Classifier result: " + ", ".join([str(prediction) for prediction in predictions])
-            prompt += " " + prediction_text
+            augmented_prompt += " " + prediction_text
 
-        response = executor(prompt, callbacks=[st_cb])
+        response = executor(augmented_prompt, callbacks=[st_cb])
         st.write(response["output"])
