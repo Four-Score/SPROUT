@@ -25,25 +25,26 @@ user_id = st.session_state.get('user_id')
 plant_names = []
 
 if user_id:
-    user_data = get_user_data_from_database(user_id)
+    user_data_str = get_user_data_from_database(user_id)
+
+    # Parse the string representation of plant data
     try:
-        # Attempt to parse the string of user data into a Python object
-        plants_info = json.loads(user_data)
-        
-        # Check if the parsed data is a list of dictionaries
-        if isinstance(plants_info, list) and all(isinstance(item, dict) for item in plants_info):
-            # Generate a list of plant names
-            plant_names = [item.get('name', 'Unnamed Plant') for item in plants_info]
-        else:
-            st.error("User data is not in the expected format. Expected a list of dictionaries.")
-    except json.JSONDecodeError as e:
+        # Split the string into individual plant data strings
+        plants_data_str = user_data_str.strip().split("\n")
+        for plant_data_str in plants_data_str:
+            # Extract the plant name from each string
+            start = plant_data_str.find("'name': ") + len("'name': ")
+            end = plant_data_str.find(",", start)
+            plant_name = plant_data_str[start:end].strip("' ")
+            if plant_name:
+                plant_names.append(plant_name)
+    except Exception as e:
         st.error(f"Error parsing user data: {e}")
 
     if not plant_names:
         st.error("No plant names available. Please check if plant data exists.")
 else:
     st.error("No user ID found. Please sign up or log in.")
-
 config = st.secrets["google_credentials"]
 credentials = service_account.Credentials.from_service_account_info(config)
 
@@ -83,12 +84,13 @@ if prompt := st.chat_input("Ask a question about your plant"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
         augmented_prompt = prompt
 
+        # selected_plant_data is now a string
         if selected_plant_data:
-            plant_info = json.dumps(selected_plant_data)
-            augmented_prompt += f" [Plant info: {plant_info}]"
-
+            # Directly append the string data
+            augmented_prompt += f" [Plant info: {selected_plant_data}]"
         else:
             augmented_prompt = prompt
+
         if uploaded_file is not None:
             bytes_data = uploaded_file.getvalue()
             st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
@@ -103,5 +105,5 @@ if prompt := st.chat_input("Ask a question about your plant"):
         else:
             prompt = prompt
 
-        response = executor(augmented_prompt, callbacks=[st_cb])
+       response = executor(augmented_prompt, callbacks=[st_cb])
         st.write(response["output"])
