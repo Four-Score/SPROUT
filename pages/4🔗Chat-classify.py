@@ -105,5 +105,5 @@ if prompt := st.chat_input("Ask a question about your plant"):
         else:
             prompt = prompt
 
-       response = executor(augmented_prompt, callbacks=[st_cb])
+        response = executor(augmented_prompt, callbacks=[st_cb])
         st.write(response["output"])
