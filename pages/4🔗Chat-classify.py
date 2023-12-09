@@ -8,7 +8,8 @@ from langchain.memory import ConversationBufferMemory
 from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
-from utils import get_user_data_from_database, make_prediction
+from utils import get_user_data_from_database
+from classify import make_prediction
 from google.oauth2 import service_account
 from google.cloud import aiplatform
 import os
