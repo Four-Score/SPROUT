@@ -111,7 +111,6 @@ def main():
 
                 soil_data = get_soil_data(polygon_id, api_key)
                 if soil_data:
-                    st.subheader("This is your Soil Data")
                     processed_soil_data = process_soil_data(soil_data)
                     if process_soil_data:
                         st.session_state['soil_data'] = processed_soil_data
