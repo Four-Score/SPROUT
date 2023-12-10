@@ -16,6 +16,13 @@ from langchain.memory import ConversationBufferMemory, StreamlitChatMessageHisto
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
 
+# Imports main tools:
+from trulens_eval import TruChain, Feedback, Tru
+from trulens_eval import feedback, Feedback
+tru = Tru()
+tru.reset_database()
+
+
 # Load environment variables
 load_dotenv()
 
@@ -157,14 +164,38 @@ if uploaded_image is not None:
         with st.expander("Image Analysis Result:"):
             st.write(image_analysis)
 
-# Chat interaction
-if prompt := st.chat_input("Ask a question or request specific advice about your farm:"):
-    with st.chat_message("user"):
-        st.write(prompt)
+hugs = feedback.Huggingface()
 
-    combined_prompt = f"{image_analysis}\n\nUser Query: {prompt}" if image_analysis else f"User Query: {prompt}"
+f_lang_match = Feedback(hugs.language_match).on_input_output()
+pii = Feedback(hugs.pii_detection).on_output()
+pos = Feedback(hugs.positive_sentiment).on_output()
+tox = Feedback(hugs.toxic).on_output() 
 
-    with st.chat_message("assistant"):
-        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        response = executor(combined_prompt, callbacks=[st_cb])
-        st.write(response["output"])
+
+tru_recorder = TruChain(executor,
+    app_id='Chain1_ChatApplication',
+    feedbacks=[f_lang_match, pii, pos, tox])
+
+with tru_recorder as recording:
+
+    # Chat interaction
+    if prompt := st.chat_input("Ask a question or request specific advice about your farm:"):
+        with st.chat_message("user"):
+            st.write(prompt)
+    
+        combined_prompt = f"{image_analysis}\n\nUser Query: {prompt}" if image_analysis else f"User Query: {prompt}"
+    
+        with st.chat_message("assistant"):
+            st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+            response = executor(combined_prompt, callbacks=[st_cb])
+            st.write(response["output"])
+
+# Displaying Results
+with st.expander("Detailed Evaluation Results"):
+    records, feedback = tru.get_records_and_feedback(app_ids=[])
+    st.dataframe(records)
+    
+with st.container():
+    st.header("Evaluation")    
+    st.dataframe(tru.get_leaderboard(app_ids=[]))
+    st.dataframe(feedback)
