@@ -18,23 +18,23 @@ def findneighbor_sample(embeddings):
   # create a service account with `Vertex AI User` role granted in IAM page.
   # download the service account key https://developers.google.com/identity/protocols/oauth2/service-account#authorizingrequests
 # Access the credentials
-  config = st.secrets["google_credentials"]
+ # config = st.secrets["google_credentials"]
   
   # Construct a credentials object from the dictionary
-  credentials = service_account.Credentials.from_service_account_info(config)
-  client_options = {
-      "api_endpoint": "231746582.us-central1-145895176016.vdb.vertexai.goog"
-  }
+  #credentials = service_account.Credentials.from_service_account_info(config)
+  #client_options = {
+     # "api_endpoint": "231746582.us-central1-145895176016.vdb.vertexai.goog"
+#  }
 
-  vertex_ai_client = aiplatform_v1beta1.MatchServiceClient(
-      credentials=credentials,
-      client_options=client_options,
-  )
+ # vertex_ai_client = aiplatform_v1beta1.MatchServiceClient(
+     # credentials=credentials,
+    #  client_options=client_options,
+ # )
 
-  request = aiplatform_v1beta1.FindNeighborsRequest(
-      index_endpoint="projects/145895176016/locations/us-central1/indexEndpoints/6932803443174146048",
-      deployed_index_id="multimodal_plants_deployed_1701961999298",
-  )
+  #request = aiplatform_v1beta1.FindNeighborsRequest(
+  #    index_endpoint="projects/145895176016/locations/us-central1/indexEndpoints/6932803443174146048",
+      #deployed_index_id="multimodal_plants_deployed_1701961999298",
+#  )
 
   dp1 = aiplatform_v1beta1.IndexDatapoint(
       datapoint_id="0",
