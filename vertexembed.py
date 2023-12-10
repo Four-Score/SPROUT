@@ -22,14 +22,14 @@ from google.oauth2 import service_account
 load_dotenv()
 import toml
 # Access the credentials
-config = st.secrets["google_credentials"]
+#config = st.secrets["google_credentials"]
 # Construct a credentials object from the dictionary
 
-creds = service_account.Credentials.from_service_account_info(config)
+#creds = service_account.Credentials.from_service_account_info(config)
 
 
-client_options = {"api_endpoint": f"{os.getenv('LOCATION')}-aiplatform.googleapis.com"}
-client = aiplatform.gapic.PredictionServiceClient(client_options=client_options, credentials=creds)
+#client_options = {"api_endpoint": f"{os.getenv('LOCATION')}-aiplatform.googleapis.com"}
+#client = aiplatform.gapic.PredictionServiceClient(client_options=client_options, credentials=creds)
 
 class EmbeddingResponse(typing.NamedTuple):
     image_embedding: typing.Sequence[float]
