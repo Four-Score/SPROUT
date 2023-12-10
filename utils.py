@@ -3,7 +3,6 @@ import hashlib
 import json, time
 from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection, utility, MilvusClient
 import os
-import json
 from dotenv import load_dotenv
 load_dotenv()  # load environment variables from .env
 CLUSTER_ENDPOINT= os.getenv("CLUSTER_ENDPOINT") # Set your cluster endpoint
@@ -94,3 +93,5 @@ def save_plant_data_to_string(plant_data_list):
         plants_info += "{ " + plant_info + " }\n"
     
     return plants_info
+
+
