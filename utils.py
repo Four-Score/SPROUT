@@ -94,15 +94,3 @@ def save_plant_data_to_string(plant_data_list):
         plants_info += "{ " + plant_info + " }\n"
     
     return plants_info
-def save_plants_data(plants_data):
-    # Save plant data to a file
-    with open('plant_data.json', 'w') as file:
-        json.dump(plants_data, file)
-def get_plants_data():
-    # Retrieve plant data from a file
-    try:
-        with open('plant_data.json', 'r') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        return []  # Return an empty list if the file does not exist
-
