@@ -12,10 +12,10 @@ import json
 # Load environment variables from .env file
 load_dotenv()
 import toml
-config = st.secrets["google_credentials"]
+#config = st.secrets["google_credentials"]
 # Construct a credentials object from the dictionary
 
-creds = service_account.Credentials.from_service_account_info(config)
+#creds = service_account.Credentials.from_service_account_info(config)
 # Parse the service account credentials from the environment variable
 
 
