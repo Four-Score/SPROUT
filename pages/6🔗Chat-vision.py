@@ -19,6 +19,12 @@ from langchain.utilities import GoogleSearchAPIWrapper
 # Load environment variables
 load_dotenv()
 
+# Page configuration
+st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
+st.title("SPROUT - Farm 🌾🌱")
+
+uploaded_image = st.file_uploader("Upload an NDVI image of your farm", type=["jpg", "jpeg", "png"])
+
 # API key and Vertex AI initialization
 import toml
 
@@ -29,9 +35,7 @@ config = st.secrets["google_credentials"]
 credentials = service_account.Credentials.from_service_account_info(config)
 aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
 
-# Page configuration
-st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
-st.title("SPROUT - Farm 🌾🌱")
+
 
 # Initialize message history and memory
 msgs = StreamlitChatMessageHistory()
@@ -39,6 +43,19 @@ memory = ConversationBufferMemory(chat_memory=msgs, return_messages=True, memory
 
 if len(msgs.messages) == 0 or st.sidebar.button("Reset chat history"):
     msgs.clear()
+    
+avatars = {"human": "user", "ai": "assistant"}
+
+for idx, msg in enumerate(msgs.messages):
+    with st.chat_message(avatars[msg.type]):
+        st.write(msg.content)
+
+# Vertex AI model and tools
+llm = VertexAI()
+# Uses text - bison model
+
+chat_model = ChatVertexAI(llm=llm)
+# Uses chat - bison model
 
 # Initialize tools and agent
 search = GoogleSearchAPIWrapper()
@@ -49,8 +66,6 @@ GoogleSearch = Tool(
 )
 tools = [GoogleSearch]
 
-llm = VertexAI()
-chat_model = ChatVertexAI(llm=llm)
 chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=tools)
 executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
 
@@ -63,9 +78,6 @@ client = replicate.Client()
 
 import tempfile
 import shutil
-def display_spinner():
-    with st.spinner('Processing image... Please wait'):
-        return
 def preprocess_image(uploaded_image):
     """
     Analyze the image using a multi-modal LLM (like Fuyu-8B) and return the analysis.
@@ -73,18 +85,12 @@ def preprocess_image(uploaded_image):
     try:
         with st.spinner("Processing image... Please wait"):
             print("Starting image processing...")
-            
+
             # Save the uploaded image to a temporary file
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
                 shutil.copyfileobj(uploaded_image, tmp_file)
                 tmp_file_path = tmp_file.name
                 print(f"Image saved to temporary file: {tmp_file_path}")
-            from PIL import Image
-
-            # In your preprocess_image function
-            img = Image.open(tmp_file_path).convert("RGB")
-            img.save(tmp_file_path)  # Overwrite the temp file with the converted image
-
 
             # Prepare the image document with the file path
             image_document = ImageDocument(image_path=tmp_file_path)
@@ -142,9 +148,7 @@ def preprocess_image(uploaded_image):
         return ""
 
 
-
 #User Interface
-uploaded_image = st.file_uploader("Upload an NDVI image of your farm", type=["jpg", "jpeg", "png"])
 image_analysis = ""
 
 if uploaded_image is not None:
@@ -154,16 +158,13 @@ if uploaded_image is not None:
             st.write(image_analysis)
 
 # Chat interaction
-prompt = st.text_input("Ask a question or request specific advice about your farm:")
-if prompt:
+if prompt := st.chat_input("Ask a question or request specific advice about your farm:"):
     with st.chat_message("user"):
         st.write(prompt)
 
     combined_prompt = f"{image_analysis}\n\nUser Query: {prompt}" if image_analysis else f"User Query: {prompt}"
 
-    with st.spinner('Generating response...'):
+    with st.chat_message("assistant"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
         response = executor(combined_prompt, callbacks=[st_cb])
-        
-        with st.chat_message("assistant"):
-            st.write(response["output"])
+        st.write(response["output"])
