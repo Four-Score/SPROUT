@@ -123,26 +123,26 @@ tru_recorder = TruChain(executor,
 with tru_recorder as recording:
     # Chat
     if prompt := st.chat_input("Ask a question about farming"):
-        with st.chat_message("user"):
-            st.write(prompt)
+    with st.chat_message("user"):
+        st.write(prompt)
 
-        with st.chat_message("assistant"):
-            st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-            if uploaded_file is not None:
-                bytes_data = uploaded_file.getvalue()
-                st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
-                st.write("")
+    with st.chat_message("assistant"):
+        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+        if uploaded_file is not None:
+            bytes_data = uploaded_file.getvalue()
+            st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
+            st.write("")
 
-                # Call the function with the image bytes and a label
-                embedding = encode_images_to_embeddings(image_bytes=bytes_data, label='Uploaded Image')
-                nearest = str(findneighbor_sample(embedding['image_embedding']))
-                print("nearest  ", nearest, type(nearest))
-                prompt = prompt + "this is info about user's plant(s): " + user_data + " this is the result of vector search on image uploaded, indicating the potential plant disease:" + nearest
-                print(prompt)
-            else:
-                prompt = prompt
-            response = executor(prompt, callbacks=[st_cb])
-            st.write(response["output"])
+            # Call the function with the image bytes and a label
+            embedding = encode_images_to_embeddings(image_bytes=bytes_data, label='Uploaded Image')
+            nearest = str(findneighbor_sample(embedding['image_embedding']))
+            print("nearest  ", nearest, type(nearest))
+            prompt = prompt + "this is info about user's plant(s): " + user_data + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." + " This is the result of vector search on image uploaded, indicating the potential plant disease:" + nearest
+            print(prompt)
+        else:
+            prompt = prompt + "this is info about user's plant(s): " + user_data + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)."
+        response = executor(prompt, callbacks=[st_cb])
+        st.write(response["output"])
 
 # Displaying Results
 with st.expander("Detailed Evaluation Results"):
