@@ -5,6 +5,7 @@ from streamlit_folium import folium_static
 import requests
 import json
 import os
+import re
 from satellite_image import get_most_recent_images, display_images_and_stats
 from soil_data import process_soil_data
 from soil_data import get_soil_data
@@ -33,7 +34,17 @@ def create_polygon(api_key, geo_json_data, polygon_name, allow_duplicates=False)
         print(f"Polygon created with ID: {polygon_id}")  # Print the Polygon ID
         return polygon_id
     else:
-        st.error(f"Failed to create polygon: {response.text}")
+        response_data = response.json()
+        error_message = response_data.get('error', {}).get('message', '')
+        if "UnprocessableEntityError" in error_message:
+            area_match = re.search(r"Area of the polygon - ([\d.]+) ha", error_message)
+            if area_match:
+                area = area_match.group(1)
+                st.info(f"The area of the polygon is currently {area} hectares. Please ensure the area is between 1 to 3000 hectares.")
+            else:
+                st.info("The area of the polygon is outside the acceptable range. Please adjust the size of your polygon.")
+        else:
+            st.info(f"Please draw your polygon again: {response.text}")
         return None
 
 def search_satellite_images(api_key, polygon_id):
@@ -54,24 +65,37 @@ def search_satellite_images(api_key, polygon_id):
 
 # Streamlit app logic
 def main():
-    st.title("Agricultural Monitoring App")
-    user_location = st.text_input("Enter your location (city, country):")
+    st.title("Sprout's Field Watch: Your Eye in the Sky")
+    # Introductory text and instructions
+    st.markdown("""
+        Welcome to the Agricultural Monitoring App. Follow these steps to view satellite imagery and soil data:
+        1. Draw a polygon on the map and click on the export button to save the GeoJSON file.
+        2. Enter a name for your polygon.
+        3. Upload the exported GeoJSON file.
+        4. Click 'Fetch Satellite Images & Soil Data' to view the information,you can also download the NDVI image.
+    """)
+    st.subheader("Enter your location")
+    user_location = st.text_input("(city, country):")
     if user_location:  # Check if user has entered a location
         st.session_state['user_location'] = user_location  # Save the location in session state
 
     # Map initialization
+    st.subheader("Draw a Polygon on the Map")
     m = folium.Map(location=[24.8607, 67.0011], zoom_start=10)  # Karachis coordinates
     draw = folium.plugins.Draw(export=True)
     draw.add_to(m)
     folium_static(m)
 
     # Polygon name input
-    polygon_name = st.text_input("Enter a name for your polygon:")
+    st.subheader("Enter name of your polygon")
+    polygon_name = st.text_input("Polygon name:")
 
     # File uploader
-    uploaded_file = st.file_uploader("Upload the exported GeoJSON file", type=['geojson'])
+    st.subheader("Upload the GeoJSON File")
+    uploaded_file = st.file_uploader("Choose the exported GeoJSON file", type=['geojson'])
 
     # Fetch satellite images button
+    st.subheader("Click the button below to fetch image and soil data")
     if st.button("Fetch Satellite Images Soil data"):
         if uploaded_file and polygon_name:
             geo_json_data = json.load(uploaded_file)
@@ -84,9 +108,10 @@ def main():
                 else:
                     st.error("Could not find satellite images for the given polygon ID.")
                 # Fetch and display soil data
+
                 soil_data = get_soil_data(polygon_id, api_key)
                 if soil_data:
-                    
+                    st.subheader("This is your Soil Data")
                     processed_soil_data = process_soil_data(soil_data)
                     if process_soil_data:
                         st.session_state['soil_data'] = processed_soil_data
@@ -98,11 +123,9 @@ def main():
                         st.error("soil data not available or key is missing")
                 
                 else:
-                     st.error(f"Failed to fetch soil data: {soil_data.text}")
-
-               
+                     st.error(f"Failed to fetch soil data: {soil_data.text}")              
             else:
-                st.error("Failed to create polygon or retrieve polygon ID.")
+                st.warning("A polygon of the specified area couldnot be created")
         else:
             st.warning("Please upload a GeoJSON file and enter a name for the polygon.")
 
