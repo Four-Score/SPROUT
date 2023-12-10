@@ -1,33 +1,36 @@
-from dotenv import load_dotenv
-import os
 import streamlit as st
-from tensorflow.keras.models import load_model
-from PIL import Image
+import tensorflow as tf
+from PIL import Image, ImageOps
 import numpy as np
-import io
+import cv2
+from tensorflow.keras.models import load_model
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Load your trained model
-model_path = 'path/to/your/model/my_model.hdf5'  # Update this path
+# Load the trained model
+model_path = 'C:\\hackathon\\my_model.hdf5'  # Update this path
 model = load_model(model_path)
 
-# Define the function to make a prediction
-def make_prediction(image_bytes):
-    # Load the image from bytes and preprocess it
-    img = Image.open(io.BytesIO(image_bytes))
-    img = img.resize((256, 256))  # Update the size to what your model expects
-    img_array = np.array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = img_array.astype('float32') / 255.0  # Normalize if your model expects
+st.write("# Flower Classification")
 
-    # Make a prediction
-    predictions = model.predict(img_array)
+file = st.file_uploader("Please upload an image file", type=["jpg", "png"])
 
-    # Convert predictions to a human-readable format
-    formatted_predictions = np.argmax(predictions, axis=1).tolist()
+class_names = ['daisy', 'dandelion', 'roses', 'sunflowers', 'tulips']  # Ensure these match your model's classes
 
-    return formatted_predictions
+def import_and_predict(image_data, model):
+    size = (180, 180)    
+    image = ImageOps.fit(image_data, size, method=Image.Resampling.LANCZOS)  # Updated for new Pillow version
+    image = np.asarray(image)
+    img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Ensure color format matches your model's training
+    img_reshape = img[np.newaxis, ...]
+    prediction = model.predict(img_reshape)
+    return prediction
 
-# Streamlit UI code goes here...
+if file is not None:
+    image = Image.open(file)
+    st.image(image, caption='Uploaded Image.', width=250)  # Adjust the width as needed
+
+    predictions = import_and_predict(image, model)
+    score = tf.nn.softmax(predictions[0])
+    predicted_class = class_names[np.argmax(score)]
+    confidence = 100 * np.max(score)
+    st.write(f"Prediction: {predicted_class}")
+    st.write(f"Confidence: {confidence:.2f}%")
