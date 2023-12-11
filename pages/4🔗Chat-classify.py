@@ -32,7 +32,7 @@ model = load_model(model_path)
 
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
-mport toml
+import toml
 credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 # Convert the string back to a JSON object
 credentials_dict = json.loads(credentials_json)
