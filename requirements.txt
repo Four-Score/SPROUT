@@ -23,3 +23,7 @@ pyowm
 torch
 tensorflow
 opencv-python==4.8.1.78
+opencv-python-headless
+tensorflow
+Pillow
+numpy
