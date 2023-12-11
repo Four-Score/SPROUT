@@ -47,7 +47,7 @@ credentials = service_account.Credentials.from_service_account_info(credentials_
 # API key
 aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
 """
-Access the credentials
+#Access the credentials
 config = st.secrets["google_credentials"]# Convert the string back to a JSON object
 #Construct a credentials object from the dictionary
 credentials = service_account.Credentials.from_service_account_info(config)
