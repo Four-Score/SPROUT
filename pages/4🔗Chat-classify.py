@@ -26,6 +26,8 @@ load_dotenv()  # load environment variables from .env
 st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
 st.title("SPROUT - Plant 🌾🌱 ")
 # Load the model for image classification
+# File uploader for image classification
+uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 model_path = 'my_model.hdf5'  # Ensure this path is correct
 model = load_model(model_path)
 
@@ -43,9 +45,6 @@ def make_prediction(image_data, model):
     confidence = 100 * np.max(score)
     answer = f'Prediction: {predicted_class}, Confidence: {confidence:.2f}%'
     return answer
-
-# File uploader for image classification
-uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
 
 
