@@ -1,3 +1,5 @@
+
+
 import streamlit as st
 import os
 import json
@@ -11,26 +13,26 @@ from llama_index.schema import ImageDocument
 from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.callbacks import StreamlitCallbackHandler
 from langchain.llms import VertexAI
+from langchain.chains import LLMChain
+from langchain.llms import OpenAI
+from langchain.prompts import PromptTemplate
+from langchain.prompts.chat import ChatPromptTemplate
+from langchain.prompts.chat import HumanMessagePromptTemplate
 from langchain.chat_models import ChatVertexAI
 from langchain.memory import ConversationBufferMemory, StreamlitChatMessageHistory
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
+from openai import OpenAI
+from trulens_eval import TruChain, Feedback, Tru, LiteLLM, Provider, Select
 
-# Imports main tools:
-from trulens_eval import TruChain, Feedback, Tru
-from trulens_eval import feedback, Feedback
-tru = Tru()
-tru.reset_database()
-
-
-# Load environment variables
-load_dotenv()
+load_dotenv()  # load environment variables from .env
 
 # Page configuration
 st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
-st.title("SPROUT - Farm 🌾🌱")
+st.title("SPROUT - Farm 🌾🌱 ")
 
-uploaded_image = st.file_uploader("Upload an NDVI image of your farm", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
+
 
 # API key and Vertex AI initialization
 import toml
@@ -41,6 +43,10 @@ config = st.secrets["google_credentials"]
 # Construct a credentials object from the dictionary
 credentials = service_account.Credentials.from_service_account_info(config)
 aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
+
+
+# API key
+
 
 
 
@@ -158,44 +164,51 @@ def preprocess_image(uploaded_image):
 #User Interface
 image_analysis = ""
 
-if uploaded_image is not None:
-    image_analysis = preprocess_image(uploaded_image)
+if uploaded_file is not None:
+    image_analysis = preprocess_image(uploaded_file)
     if image_analysis:
         with st.expander("Image Analysis Result:"):
             st.write(image_analysis)
 
-hugs = feedback.Huggingface()
 
-f_lang_match = Feedback(hugs.language_match).on_input_output()
-pii = Feedback(hugs.pii_detection).on_output()
-pos = Feedback(hugs.positive_sentiment).on_output()
-tox = Feedback(hugs.toxic).on_output() 
 
+tru = Tru()
+tru.reset_database()
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+#Initialize LiteLLM-based feedback function collection class:
+litellm = LiteLLM(model_engine="chat-bison")
+
+# Define a relevance function using LiteLLM
+relevance = Feedback(litellm.relevance_with_cot_reasons).on_input_output()
 
 tru_recorder = TruChain(executor,
     app_id='Chain1_ChatApplication',
-    feedbacks=[f_lang_match, pii, pos, tox])
+    feedbacks=[relevance])
 
-with tru_recorder as recording:
 
-    # Chat interaction
-    if prompt := st.chat_input("Ask a question or request specific advice about your farm:"):
-        with st.chat_message("user"):
-            st.write(prompt)
-    
-        combined_prompt = f"{image_analysis}\n\nUser Query: {prompt}" if image_analysis else f"User Query: {prompt}"
-    
-        with st.chat_message("assistant"):
-            st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-            response = executor(combined_prompt, callbacks=[st_cb])
-            st.write(response["output"])
+evaluation_queries = [
+    "What are effective pest management strategies for organic vegetable farming?",
+    "How can soil health be improved for sustainable crop production?"
+]
 
-# Displaying Results
-with st.expander("Detailed Evaluation Results"):
-    records, feedback = tru.get_records_and_feedback(app_ids=[])
-    st.dataframe(records)
-    
-with st.container():
-    st.header("Evaluation")    
-    st.dataframe(tru.get_leaderboard(app_ids=[]))
-    st.dataframe(feedback)
+for query in evaluation_queries:
+    with tru_recorder as recording:
+        llm_response = executor(query)
+        print(llm_response)
+
+tru.run_dashboard()
+tru.get_records_and_feedback(app_ids=[])[0]
+
+# Chat interaction
+if prompt := st.chat_input("Ask a question or request specific advice about your farm:"):
+    with st.chat_message("user"):
+        st.write(prompt)
+
+    combined_prompt = f"{image_analysis}\n\nUser Query: {prompt}" if image_analysis else f"User Query: {prompt}"
+
+    with st.chat_message("assistant"):
+        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+        response = executor(combined_prompt, callbacks=[st_cb])
+        st.write(response["output"])
