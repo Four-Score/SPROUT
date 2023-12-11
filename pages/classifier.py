@@ -6,7 +6,7 @@ import cv2
 from tensorflow.keras.models import load_model
 
 # Load the trained model
-model_path = 'C:\\hackathon\\my_model.hdf5'  # Update this path
+model_path = 'my_model.hdf5'  # Update this path
 model = load_model(model_path)
 
 st.write("# Flower Classification")
