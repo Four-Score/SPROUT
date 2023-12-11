@@ -37,14 +37,7 @@ import toml
 #import toml
 
 # Access the credentials
-config = st.secrets["google_credentials"]
 
-# Construct a credentials object from the dictionary
-credentials = service_account.Credentials.from_service_account_info(config)
-#aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
-
-# API key
-aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
 
 #Access the credentials
 config = st.secrets["google_credentials"]# Convert the string back to a JSON object
