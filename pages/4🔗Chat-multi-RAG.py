@@ -120,10 +120,10 @@ if prompt := st.chat_input("Ask a question about farming"):
             embedding = create_embeddings_from_image_bytes(bytes_data)
             nearest = perform_vector_search(embedding)
             print("nearest  ", nearest, type(nearest))
-            prompt = prompt + "this is info about user's plant(s): " + user_data + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." + " This is the result of vector search on image uploaded, indicating the potential plant disease:" + nearest
+            prompt = prompt + "this is info about user's plant(s): " + str(user_data) + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." + " This is the result of vector search on image uploaded, indicating the potential plant disease:" + str(nearest)
             print(prompt)
         else:
-            prompt = prompt + "this is info about user's plant(s): " + user_data + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)."
+            prompt = prompt + "this is info about user's plant(s): " + str(user_data) + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)."
         response = executor(prompt, callbacks=[st_cb])
         st.write(response["output"])
 
