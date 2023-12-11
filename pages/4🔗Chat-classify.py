@@ -32,6 +32,24 @@ model = load_model(model_path)
 
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
+mport toml
+credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+# Convert the string back to a JSON object
+credentials_dict = json.loads(credentials_json)
+# Construct a credentials object from the dictionary
+credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+
+
+# API key
+aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
+
+#Access the credentials
+config = st.secrets["google_credentials"]# Convert the string back to a JSON object
+#Construct a credentials object from the dictionary
+credentials = service_account.Credentials.from_service_account_info(config)
+
+# API key
+aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION"), credentials=credentials)
 
 # Use the user_id from session state
 user_id = st.session_state.get('user_id')
