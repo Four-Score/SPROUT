@@ -65,7 +65,7 @@ def search_satellite_images(api_key, polygon_id):
 
 # Streamlit app logic
 def main():
-    st.title("Sprout's Field Watch: Your Eye in the Sky")
+    st.title("🌱Sprout's Field Watch: Your Eye in the Sky")
     # Introductory text and instructions
     st.markdown("""
         Welcome to the Agricultural Monitoring App. Follow these steps to view satellite imagery and soil data:
