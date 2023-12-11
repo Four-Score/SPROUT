@@ -33,8 +33,12 @@ import cv2
 from tensorflow.keras.models import load_model
 
 # Load the trained model
-model_path = 'my_model.hdf5'  # Update this path
-model = load_model(model_path)
+model_path = 'my_model.hdf5'  
+
+@st.cache
+def load_the_model(model_path):
+	  return load_model(model_path)
+model = load_the_model(model_path)
 
 st.write("# Flower Classification")
 
