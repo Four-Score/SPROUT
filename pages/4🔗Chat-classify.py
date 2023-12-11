@@ -33,12 +33,15 @@ model = load_model(model_path)
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 import toml
-credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-# Convert the string back to a JSON object
-credentials_dict = json.loads(credentials_json)
-# Construct a credentials object from the dictionary
-credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+# API key and Vertex AI initialization
+#import toml
 
+# Access the credentials
+config = st.secrets["google_credentials"]
+
+# Construct a credentials object from the dictionary
+credentials = service_account.Credentials.from_service_account_info(config)
+#aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
 
 # API key
 aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
