@@ -135,7 +135,7 @@ if prompt := st.chat_input("Ask a question about planting"):
 
     with st.chat_message("assistant"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        if uploaded_file is not None:
+        if file is not None:
             image = Image.open(uploaded_file)
             st.image(image, caption='Uploaded Image.', width=250)
 
