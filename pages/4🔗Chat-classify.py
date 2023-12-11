@@ -11,42 +11,49 @@ from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
 
-from vertexembed import encode_images_to_embeddings
-from vectorSearch import findneighbor_sample
+
 from utils import get_user_data_from_database
-
-# Imports main tools:
-from trulens_eval import TruChain, Feedback, Tru
-from trulens_eval import feedback, Feedback
-tru = Tru()
-tru.reset_database()
-
-
+from classify import make_prediction
+from PIL import Image, ImageOps
 import os
 import json
 from google.cloud import aiplatform
-import vertexai
 from google.oauth2 import service_account
-
+from tensorflow.keras.models import load_model
 from dotenv import load_dotenv
 load_dotenv()  # load environment variables from .env
 
 # Page configuration
 st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
-st.title("SPROUT - Farm 🌾🌱 ")
+st.title("SPROUT - Plant 🌾🌱 ")
+model_path = 'my_model.hdf5'  # Update this path
+model = load_model(model_path)
+
+
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
 
 import toml
 
-# Access the credentials
-#config = st.secrets["google_credentials"]# Convert the string back to a JSON object
+"""
+credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+# Convert the string back to a JSON object
+credentials_dict = json.loads(credentials_json)
 # Construct a credentials object from the dictionary
-#credentials = service_account.Credentials.from_service_account_info(config)
+credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+
 
 # API key
-#aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION"), credentials=credentials)
+aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
+"""
+Access the credentials
+config = st.secrets["google_credentials"]# Convert the string back to a JSON object
+#Construct a credentials object from the dictionary
+credentials = service_account.Credentials.from_service_account_info(config)
+
+# API key
+aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION"), credentials=credentials)
 
 # Use the user_id from session state
 user_id = st.session_state.get('user_id')
@@ -98,48 +105,28 @@ tools = [GoogleSearch]
 chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=tools)
 executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
 
-hugs = feedback.Huggingface()
-
-f_lang_match = Feedback(hugs.language_match).on_input_output()
-pii = Feedback(hugs.pii_detection).on_output()
-pos = Feedback(hugs.positive_sentiment).on_output()
-tox = Feedback(hugs.toxic).on_output() 
 
 
-tru_recorder = TruChain(executor,
-    app_id='Chain1_ChatApplication',
-    feedbacks=[f_lang_match, pii, pos, tox])
 
-with tru_recorder as recording:
+# Chat
+if prompt := st.chat_input("Ask a question about planting"):
+    with st.chat_message("user"):
+        st.write(prompt)
 
-    # Chat
-    if prompt := st.chat_input("Ask a question about planting"):
-        with st.chat_message("user"):
-            st.write(prompt)
-    
-        with st.chat_message("assistant"):
-            st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-            if uploaded_file is not None:
-                bytes_data = uploaded_file.getvalue()
-                st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
-                st.write("")
-    
-                # Call the classifier with the image bytes
-                predictions = make_prediction(bytes_data)
-                prediction_text = "This is the result of the classifier on the image uploaded, indicating the potential plant status: " + ", ".join([str(prediction) for prediction in predictions])
-                prompt = prompt + "this is info about user's plant(s): " + user_data + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." +  " " + prediction_text
-                print(prompt)
-            else:
-                prompt = prompt + "this is info about user's plant(s): " + user_data + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)."
-            response = executor(prompt, callbacks=[st_cb])
-            st.write(response["output"])
+    with st.chat_message("assistant"):
+        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+        if uploaded_file is not None:
+            image = Image.open(uploaded_file)
+            st.image(image, caption='Uploaded Image.', width=250)  # Adjust the width as needed
 
-# Displaying Results
-with st.expander("Detailed Evaluation Results"):
-    records, feedback = tru.get_records_and_feedback(app_ids=[])
-    st.dataframe(records)
-    
-with st.container():
-    st.header("Evaluation")    
-    st.dataframe(tru.get_leaderboard(app_ids=[]))
-    st.dataframe(feedback)
+            # Call the classifier with the image bytes
+            predictions = make_prediction(image, model)
+            prediction_text = "This is the result of the classifier on the image uploaded, indicating the potential plant type: " + ", ".join([str(prediction) for prediction in predictions])
+            prompt = "This is the user's query:" + prompt + "this is info about user's / user's plant(s): " + user_data + " Use the information about user's / user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." +  " " + prediction_text
+            print(prompt)
+        else:
+            prompt =  "This is the user's query:" + prompt + "this is info about user's / user's plant(s): " + user_data + " Use the information about user's / user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)."
+        response = executor(prompt, callbacks=[st_cb])
+        st.write(response["output"])
+
+
