@@ -33,7 +33,7 @@ st.title("SPROUT - Farm 🌾🌱 ")
 
 uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
-
+"""
 # API key and Vertex AI initialization
 import toml
 
@@ -44,7 +44,7 @@ config = st.secrets["google_credentials"]
 credentials = service_account.Credentials.from_service_account_info(config)
 aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
 
-
+"""
 # API key
 
 
