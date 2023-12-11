@@ -29,7 +29,7 @@ def get_most_recent_images(polygon_id, api_key):
 def display_images_and_stats(image_data, api_key):
     if image_data:
         # Display the NDVI image with a heading
-        st.subheader("This is your NDVI Image")
+        st.subheader("NDVI Image of your field")
         ndvi_image_url = image_data['image']['ndvi']
         st.image(ndvi_image_url, caption="Most Recent NDVI Image", width=150)
 
@@ -47,7 +47,7 @@ def display_images_and_stats(image_data, api_key):
                 st.error("Failed to download NDVI image.")
 
         # Display the statistics with a heading
-        st.subheader("This is your Statistics")
+        st.subheader("Statistics")
         # Initialize an empty list to store the statistics
         stats_data = []
 
