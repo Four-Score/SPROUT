@@ -128,7 +128,57 @@ def preprocess_ndvi_image(image):
     # Extract and return the analysis from the response
     analysis = response["output"]
     return analysis
+def llamaindex_analyze(analyze_text):
+    llm = Replicate(
+        model="a16z-infra/llama13b-v2-chat:df7690f1994d94e96ad9d568eac121aecf50684a0b0963b25a41cc40061269e5"
+    )
+    # Initialize storage context
+    storage_context = StorageContext.from_defaults(vector_store=text_store, image_store=image_store)
 
+    # Initialize LLM and embedding models
+    # Initialize Fuyu-8B MultiModal LLM
+    fuyu_mm_llm = ReplicateMultiModal(
+        model="yorickvp/llava-13b:2facb4a474a0462c15041b78b1ad70952ea46b5ec6ad29583c0b29dbd4249591",
+        max_new_tokens=500,
+        temperature=0.1,
+        num_input_files=1,
+        top_p=0.9,
+        num_beams=1,
+        repetition_penalty=1,
+    )
+
+    embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
+    service_context = ServiceContext.from_defaults(llm=llm,embed_model=embed_model)
+
+    # Initialize the MultiModal index
+    img_vector_index = MultiModalVectorStoreIndex.from_vector_store(
+        vector_store=text_store,
+        service_context=service_context,
+        image_vector_store=image_store,
+        image_embed_model="clip"
+    )
+
+    # instantiate a retriever
+    retriever_engine = img_vector_index.as_retriever(
+        similarity_top_k=5, image_similarity_top_k=1
+    )
+
+    # get images semantically similar to our own
+    retrieval_results = retriever_engine.retrieve("Given an NDVI map description, assess its vegetation health, identify areas with potential issues, and provide insights on crop growth patterns and potential improvements. Consider factors such as crop density, water stress, and nutrient levels.")
+
+
+
+    retrieved_image = []
+    for res_node in retrieval_results:
+        if isinstance(res_node.node, ImageNode):
+            continue
+        else:
+            relavent_info += f'{res_node.text}'
+            print(relavent_info)
+            
+    resp = llm.stream_complete("Summarize and organize these insights into a report for the farmer.")
+    print(resp)
+    return resp
 
 
 search = GoogleSearchAPIWrapper()
