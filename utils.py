@@ -3,9 +3,13 @@ import hashlib
 import json, time
 from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection, utility, MilvusClient
 import os
+import os
+from transformers import AutoFeatureExtractor, AutoModelForImageClassification
+from PIL import Image
+import io
 from dotenv import load_dotenv
 load_dotenv()  # load environment variables from .env
-CLUSTER_ENDPOINT= os.getenv("CLUSTER_ENDPOINT") # Set your cluster endpoint
+CLUSTER_ENDPOINT= os.getenv("CLUSTER_ENDPOINT") # cluster endpoint
 TOKEN=os.getenv("TOKEN") # Set your token
 COLLECTION_NAME="user_data" # Set your collection name
 
@@ -21,6 +25,7 @@ connections.connect(
 client = MilvusClient(uri=CLUSTER_ENDPOINT, token=TOKEN)
 collection = Collection(uri=CLUSTER_ENDPOINT, token=TOKEN, name=COLLECTION_NAME)
 
+  
 
 def embed_info(info):
     # loads BAAI/bge-small-en-v1.5
@@ -94,4 +99,40 @@ def save_plant_data_to_string(plant_data_list):
     
     return plants_info
 
+def create_embeddings_from_image_bytes(image_bytes):
+    # Initialize the feature extractor and model
+    extractor = AutoFeatureExtractor.from_pretrained("microsoft/resnet-50")
+    model = AutoModelForImageClassification.from_pretrained("microsoft/resnet-50")
+
+    # Convert bytes data to a file-like object
+    img = Image.open(io.BytesIO(image_bytes))
+
+    # Preprocess the image using the feature extractor
+    inputs = extractor(images=img, return_tensors="pt")
+
+    # Forward pass through the model
+    outputs = model(**inputs)
+
+    # Extract the embeddings from the output
+    logits = outputs.logits
+    return logits
+
+def perform_vector_search(embeddings):
+    # Convert PyTorch tensor to a list of lists
+    vectors_to_search = embeddings.detach().cpu().tolist()
+
+    # If logits is a 2D tensor with a single data point, it will be a nested list after tolist(),
+    # but Milvus expects a flat list for a single vector, so take the first element.
+    if len(vectors_to_search) == 1:
+        vectors_to_search = vectors_to_search[0]
+
+    # Now perform the search with the vector
+    res = client.search(
+        collection_name='plant_diseases',
+        data=[vectors_to_search],  # Wrap the flat list in another list to make it a list of lists
+        output_fields=["label"],
+        limit=5
+    )
+
+    return res
 
