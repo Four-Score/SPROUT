@@ -31,7 +31,6 @@ model = load_model(model_path)
 
 
 
-uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 import toml
 # API key and Vertex AI initialization
 #import toml
@@ -100,7 +99,29 @@ executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, mem
 
 
 
-# Chat
+# Load the model for image classification
+model_path = 'my_model.hdf5'  # Ensure this path is correct
+model = load_model(model_path)
+
+# Define the make_prediction function
+def make_prediction(image_data, model):
+    size = (180, 180)    
+    image = ImageOps.fit(image_data, size, method=Image.Resampling.LANCZOS)
+    image = np.asarray(image)
+    img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    img_reshape = img[np.newaxis, ...]
+    prediction = model.predict(img_reshape)
+    score = tf.nn.softmax(prediction[0])
+    class_names = ['daisy', 'dandelion', 'roses', 'sunflowers', 'tulips']
+    predicted_class = class_names[np.argmax(score)]
+    confidence = 100 * np.max(score)
+    answer = f'Prediction: {predicted_class}, Confidence: {confidence:.2f}%'
+    return answer
+
+# File uploader for image classification
+uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
+
+# Chat and image classification integration
 if prompt := st.chat_input("Ask a question about planting"):
     with st.chat_message("user"):
         st.write(prompt)
@@ -109,16 +130,15 @@ if prompt := st.chat_input("Ask a question about planting"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
-            st.image(image, caption='Uploaded Image.', width=250)  # Adjust the width as needed
+            st.image(image, caption='Uploaded Image.', width=250)
 
-            # Call the classifier with the image bytes
-            predictions = make_prediction(image, model)
-            prediction_text = "This is the result of the classifier on the image uploaded, indicating the potential plant type: " + ", ".join([str(prediction) for prediction in predictions])
-            prompt = "This is the user's query:" + prompt + "this is info about user's / user's plant(s): " + user_data + " Use the information about user's / user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." +  " " + prediction_text
-            print(prompt)
+            prediction_text = make_prediction(image, model)
+            prompt = "This is the user's query:" + prompt + " " + prediction_text
         else:
-            prompt =  "This is the user's query:" + prompt + "this is info about user's / user's plant(s): " + user_data + " Use the information about user's / user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)."
+            prompt = "This is the user's query:" + prompt
+
         response = executor(prompt, callbacks=[st_cb])
         st.write(response["output"])
+
 
 
