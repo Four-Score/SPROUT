@@ -22,3 +22,4 @@ google_oauth2_tool
 pyowm
 torch
 tensorflow
+cv2
