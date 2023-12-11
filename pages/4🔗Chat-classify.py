@@ -13,7 +13,6 @@ from langchain.utilities import GoogleSearchAPIWrapper
 
 
 from utils import get_user_data_from_database
-from classify import make_prediction
 from PIL import Image, ImageOps
 import os
 import json
@@ -26,8 +25,27 @@ load_dotenv()  # load environment variables from .env
 # Page configuration
 st.set_page_config(page_title="LangChain with Vertex AI", page_icon="🌱")
 st.title("SPROUT - Plant 🌾🌱 ")
-model_path = 'my_model.hdf5'  # Update this path
+# Load the model for image classification
+model_path = 'my_model.hdf5'  # Ensure this path is correct
 model = load_model(model_path)
+
+# Define the make_prediction function
+def make_prediction(image_data, model):
+    size = (180, 180)    
+    image = ImageOps.fit(image_data, size, method=Image.Resampling.LANCZOS)
+    image = np.asarray(image)
+    img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    img_reshape = img[np.newaxis, ...]
+    prediction = model.predict(img_reshape)
+    score = tf.nn.softmax(prediction[0])
+    class_names = ['daisy', 'dandelion', 'roses', 'sunflowers', 'tulips']
+    predicted_class = class_names[np.argmax(score)]
+    confidence = 100 * np.max(score)
+    answer = f'Prediction: {predicted_class}, Confidence: {confidence:.2f}%'
+    return answer
+
+# File uploader for image classification
+uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
 
 
@@ -95,31 +113,6 @@ tools = [GoogleSearch]
 
 chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=tools)
 executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
-
-
-
-
-# Load the model for image classification
-model_path = 'my_model.hdf5'  # Ensure this path is correct
-model = load_model(model_path)
-
-# Define the make_prediction function
-def make_prediction(image_data, model):
-    size = (180, 180)    
-    image = ImageOps.fit(image_data, size, method=Image.Resampling.LANCZOS)
-    image = np.asarray(image)
-    img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    img_reshape = img[np.newaxis, ...]
-    prediction = model.predict(img_reshape)
-    score = tf.nn.softmax(prediction[0])
-    class_names = ['daisy', 'dandelion', 'roses', 'sunflowers', 'tulips']
-    predicted_class = class_names[np.argmax(score)]
-    confidence = 100 * np.max(score)
-    answer = f'Prediction: {predicted_class}, Confidence: {confidence:.2f}%'
-    return answer
-
-# File uploader for image classification
-uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'])
 
 # Chat and image classification integration
 if prompt := st.chat_input("Ask a question about planting"):
