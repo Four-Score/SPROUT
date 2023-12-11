@@ -11,9 +11,7 @@ from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
 
-from vertexembed import encode_images_to_embeddings
-from vectorSearch import findneighbor_sample
-from utils import get_user_data_from_database
+from utils import get_user_data_from_database, perform_vector_search, create_embeddings_from_image_bytes
 
 # Imports main tools:
 from trulens_eval import TruChain, Feedback, Tru
