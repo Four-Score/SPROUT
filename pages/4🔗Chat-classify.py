@@ -139,8 +139,7 @@ if prompt := st.chat_input("Ask a question about planting"):
             image = Image.open(file)
             st.image(image, caption='Uploaded Image.', width=250)
 
-            prediction_text = make_prediction(image, model)
-            prompt = "This is the user's query:" + prompt + " " + prediction_text
+            prompt = "This is the user's query:" + prompt + " " + predicted_class
         else:
             prompt = "This is the user's query:" + prompt
 
