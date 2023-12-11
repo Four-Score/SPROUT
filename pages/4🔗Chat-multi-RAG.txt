@@ -40,13 +40,13 @@ uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png
 import toml
 
 # Access the credentials
-#config = st.secrets["google_credentials"]
+config = st.secrets["google_credentials"]
 
 # Construct a credentials object from the dictionary
-#credentials = service_account.Credentials.from_service_account_info(config)
+credentials = service_account.Credentials.from_service_account_info(config)
 
 # API key
-#aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION"), credentials=credentials)
+aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION"), credentials=credentials)
 
 # Use the user_id from session state
 user_id = st.session_state.get('user_id')
@@ -106,23 +106,8 @@ executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, mem
 
 
 
-
-
-hugs = feedback.Huggingface()
-
-f_lang_match = Feedback(hugs.language_match).on_input_output()
-pii = Feedback(hugs.pii_detection).on_output()
-pos = Feedback(hugs.positive_sentiment).on_output()
-tox = Feedback(hugs.toxic).on_output() 
-
-
-tru_recorder = TruChain(executor,
-    app_id='Chain1_ChatApplication',
-    feedbacks=[f_lang_match, pii, pos, tox])
-
-with tru_recorder as recording:
-    # Chat
-    if prompt := st.chat_input("Ask a question about farming"):
+# Chat
+if prompt := st.chat_input("Ask a question about farming"):
     with st.chat_message("user"):
         st.write(prompt)
 
@@ -134,8 +119,8 @@ with tru_recorder as recording:
             st.write("")
 
             # Call the function with the image bytes and a label
-            embedding = encode_images_to_embeddings(image_bytes=bytes_data, label='Uploaded Image')
-            nearest = str(findneighbor_sample(embedding['image_embedding']))
+            embedding = create_embeddings_from_image_bytes(bytes_data)
+            nearest = perform_vector_search(embedding)
             print("nearest  ", nearest, type(nearest))
             prompt = prompt + "this is info about user's plant(s): " + user_data + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." + " This is the result of vector search on image uploaded, indicating the potential plant disease:" + nearest
             print(prompt)
@@ -144,12 +129,4 @@ with tru_recorder as recording:
         response = executor(prompt, callbacks=[st_cb])
         st.write(response["output"])
 
-# Displaying Results
-with st.expander("Detailed Evaluation Results"):
-    records, feedback = tru.get_records_and_feedback(app_ids=[])
-    st.dataframe(records)
-    
-with st.container():
-    st.header("Evaluation")    
-    st.dataframe(tru.get_leaderboard(app_ids=[]))
-    st.dataframe(feedback)
+
