@@ -10,7 +10,8 @@ from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
-
+from openai import OpenAI
+from trulens_eval import TruChain, Feedback, Tru, LiteLLM, Provider, Select
 
 from utils import get_user_data_from_database
 import os
@@ -129,6 +130,35 @@ tools = [GoogleSearch]
 
 chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=tools)
 executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
+
+tru = Tru()
+tru.reset_database()
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+#Initialize LiteLLM-based feedback function collection class:
+litellm = LiteLLM(model_engine="chat-bison")
+
+# Define a relevance function using LiteLLM
+relevance = Feedback(litellm.relevance_with_cot_reasons).on_input_output()
+
+tru_recorder = TruChain(executor,
+    app_id='Chain1_ChatApplication',
+    feedbacks=[relevance])
+
+
+evaluation_queries = [
+    "What are effective pest management strategies for potted plants?",
+    "How best to take care of potted plants in very hot weather?"
+]
+
+for query in evaluation_queries:
+    with tru_recorder as recording:
+        llm_response = executor(query)
+        print(llm_response)
+
+tru.run_dashboard()
+tru.get_records_and_feedback(app_ids=[])[0]
 
 # Chat and image classification integration
 if prompt := st.chat_input("Ask a question about planting"):
