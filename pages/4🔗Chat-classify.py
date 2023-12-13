@@ -10,8 +10,7 @@ from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
-from openai import OpenAI
-from trulens_eval import TruChain, Feedback, Tru, LiteLLM, Provider, Select
+from trulens_eval import TruChain, Feedback, Tru, LiteLLM
 
 from utils import get_user_data_from_database
 import os
