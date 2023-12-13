@@ -3,7 +3,8 @@ from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.callbacks import StreamlitCallbackHandler
 from langchain.llms import VertexAI
 from langchain.chat_models import ChatVertexAI
-
+from openai import OpenAI
+from trulens_eval import TruChain, Feedback, Tru, LiteLLM, Provider, Select
 
 from langchain.memory import ConversationBufferMemory
 from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
@@ -95,30 +96,58 @@ tools = [GoogleSearch]
 chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=chat_model, tools=tools)
 executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, memory=memory, return_intermediate_steps=True, handle_parsing_errors=True)
 
+tru = Tru()
+tru.reset_database()
 
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+#Initialize LiteLLM-based feedback function collection class:
+litellm = LiteLLM(model_engine="chat-bison")
+
+# Define a relevance function using LiteLLM
+relevance = Feedback(litellm.relevance_with_cot_reasons).on_input_output()
+
+tru_recorder = TruChain(executor,
+    app_id='Chain1_ChatApplication',
+    feedbacks=[relevance])
+
+
+evaluation_queries = [
+    "What are effective pest management strategies for potted plants?",
+    "How best to take care of potted plants in very hot weather?"
+]
+
+for query in evaluation_queries:
+    with tru_recorder as recording:
+        llm_response = executor(query)
+        print(llm_response)
+
+tru.run_dashboard()
+tru.get_records_and_feedback(app_ids=[])[0]
 
 
 # Chat
 if prompt := st.chat_input("Ask a question about farming"):
     with st.chat_message("user"):
         st.write(prompt)
-
-    with st.chat_message("assistant"):
-        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        if uploaded_file is not None:
-            bytes_data = uploaded_file.getvalue()
-            st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
-            st.write("")
-
-            # Call the function with the image bytes and a label
-            embedding = create_embeddings_from_image_bytes(bytes_data)
-            nearest = perform_vector_search(embedding)
-            print("nearest  ", nearest, type(nearest))
-            prompt = prompt + "this is info about user's plant(s): " + str(user_data) + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." + " This is the result of vector search on image uploaded, indicating the potential plant disease:" + str(nearest)
-            print(prompt)
-        else:
-            prompt = prompt + "this is info about user's plant(s): " + str(user_data) + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)."
-        response = executor(prompt, callbacks=[st_cb])
-        st.write(response["output"])
-
+    try:
+        with st.chat_message("assistant"):
+            st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+            if uploaded_file is not None:
+                bytes_data = uploaded_file.getvalue()
+                st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
+                st.write("")
+    
+                # Call the function with the image bytes and a label
+                embedding = create_embeddings_from_image_bytes(bytes_data)
+                nearest = perform_vector_search(embedding)
+                print("nearest  ", nearest, type(nearest))
+                prompt = prompt + "this is info about user's plant(s): " + str(user_data) + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." + " This is the result of vector search on image uploaded, indicating the potential plant disease:" + str(nearest)
+                print(prompt)
+            else:
+                prompt = prompt + "this is info about user's plant(s): " + str(user_data) + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)."
+            response = executor(prompt, callbacks=[st_cb])
+            st.write(response["output"])
+    except Exception as e:
+        st.error("Feature is unable to work because maximum Streamlit resource limit has been reached.")
 
