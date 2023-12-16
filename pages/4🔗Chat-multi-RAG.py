@@ -38,7 +38,7 @@ config = st.secrets["google_credentials"]
 credentials = service_account.Credentials.from_service_account_info(config)
 
 # API key
-aiplatform.init(project=os.getenv("PROJECT_ID_CODE"), location=os.getenv("REGION"), credentials=credentials)
+aiplatform.init(project=os.getenv("PROJECT_ID"), location=os.getenv("REGION"), credentials=credentials)
 
 # Use the user_id from session state
 user_id = st.session_state.get('user_id')
