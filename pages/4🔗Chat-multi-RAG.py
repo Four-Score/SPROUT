@@ -50,6 +50,7 @@ if user_id:
     # Use the user_data as needed in your application
 else:
     st.error("No user ID found. Please sign up or log in.")
+    user_data = ""
 
 
 # Create a Vertex AI agent
