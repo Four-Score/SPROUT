@@ -101,25 +101,25 @@ executor = AgentExecutor.from_agent_and_tools(agent=chat_agent, tools=tools, mem
 if prompt := st.chat_input("Ask a question about farming"):
     with st.chat_message("user"):
         st.write(prompt)
-    #try:
-    with st.chat_message("assistant"):
-        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        if uploaded_file is not None:
-            bytes_data = uploaded_file.getvalue()
-            st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
-            st.write("")
-
-            # Call the function with the image bytes and a label
-            embedding = create_embeddings_from_image_bytes(bytes_data)
-            nearest = perform_vector_search(embedding)
-            print("nearest  ", nearest, type(nearest))
-            st.write("The closest vector search matched for this image are: ", nearest)
-            prompt = prompt + "this is info about user's plant(s): " + str(user_data) + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." + " This is the result of vector search on image uploaded, indicating the potential plant disease:" + str(nearest)
-            print(prompt)
-        else:
-            prompt = prompt + "this is info about user's plant(s): " + str(user_data) + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)."
-        response = executor(prompt, callbacks=[st_cb])
-        st.write(response["output"])
-    #except Exception as e:
-        #st.error("Feature is unable to work because maximum Streamlit resource limit has been reached.")
+    try:
+        with st.chat_message("assistant"):
+            st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+            if uploaded_file is not None:
+                bytes_data = uploaded_file.getvalue()
+                st.image(bytes_data, caption='Uploaded Image.', use_column_width=True)
+                st.write("")
+    
+                # Call the function with the image bytes and a label
+                embedding = create_embeddings_from_image_bytes(bytes_data)
+                nearest = perform_vector_search(embedding)
+                print("nearest  ", nearest, type(nearest))
+                st.write("The closest vector search matched for this image are: ", nearest)
+                prompt = prompt + "this is info about user's plant(s): " + str(user_data) + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)." + " This is the result of vector search on image uploaded, indicating the potential plant disease:" + str(nearest)
+                print(prompt)
+            else:
+                prompt = prompt + "this is info about user's plant(s): " + str(user_data) + " Use the information about user's plant(s) to provide more relevant responses. If the user doesn't specify the plant, ask them to specify a plant first (if there are more than one)."
+            response = executor(prompt, callbacks=[st_cb])
+            st.write(response["output"])
+    except Exception as e:
+        st.error("Feature is unable to work because maximum Streamlit resource limit has been reached.")
 
