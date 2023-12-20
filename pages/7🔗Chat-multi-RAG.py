@@ -33,10 +33,10 @@ from langchain.tools import BaseTool
 import replicate
 
 # Imports main tools:
-from trulens_eval import TruChain, Feedback, Tru
-from trulens_eval import feedback, Feedback
-tru = Tru()
-tru.reset_database()
+# from trulens_eval import TruChain, Feedback, Tru
+# from trulens_eval import feedback, Feedback
+# tru = Tru()
+# tru.reset_database()
 
 import os
 import json
@@ -211,36 +211,36 @@ if uploaded_ndvi_image is not None:
     # Preprocess the image with the multi-modal LLM
     image_analysis = preprocess_ndvi_image(uploaded_ndvi_image)
     
-hugs = feedback.Huggingface()
+# hugs = feedback.Huggingface()
 
-f_lang_match = Feedback(hugs.language_match).on_input_output()
-pii = Feedback(hugs.pii_detection).on_output()
-pos = Feedback(hugs.positive_sentiment).on_output()
-tox = Feedback(hugs.toxic).on_output() 
+# f_lang_match = Feedback(hugs.language_match).on_input_output()
+# pii = Feedback(hugs.pii_detection).on_output()
+# pos = Feedback(hugs.positive_sentiment).on_output()
+# tox = Feedback(hugs.toxic).on_output() 
 
 
-tru_recorder = TruChain(executor,
-    app_id='Chain1_ChatApplication',
-    feedbacks=[f_lang_match, pii, pos, tox])
+# tru_recorder = TruChain(executor,
+#     app_id='Chain1_ChatApplication',
+#     feedbacks=[f_lang_match, pii, pos, tox])
 
-with tru_recorder as recording:
+# with tru_recorder as recording:
     # Chat
-    if prompt := st.chat_input("Ask a question about planting"):
-        with st.chat_message("user"):
-            st.write(prompt)
+if prompt := st.chat_input("Ask a question about planting"):
+    with st.chat_message("user"):
+        st.write(prompt)
 
-        with st.chat_message("assistant"):
-            st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-            combined_prompt = f"NDVI Image Analysis: {image_analysis}\n\nUser Query: {prompt}\n\nSoil Data: {soil_data}\n\nFarm Location: {location}"
-            response = executor(prompt, callbacks=[st_cb])
-            st.write(response["output"])
+    with st.chat_message("assistant"):
+        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+        combined_prompt = f"NDVI Image Analysis: {image_analysis}\n\nUser Query: {prompt}\n\nSoil Data: {soil_data}\n\nFarm Location: {location}"
+        response = executor(prompt, callbacks=[st_cb])
+        st.write(response["output"])
 
 # Displaying Results
-with st.expander("Detailed Evaluation Results"):
-    records, feedback = tru.get_records_and_feedback(app_ids=[])
-    st.dataframe(records)
+# with st.expander("Detailed Evaluation Results"):
+#     records, feedback = tru.get_records_and_feedback(app_ids=[])
+#     st.dataframe(records)
     
-with st.container():
-    st.header("Evaluation")    
-    st.dataframe(tru.get_leaderboard(app_ids=[]))
-    st.dataframe(feedback)
+# with st.container():
+#     st.header("Evaluation")    
+#     st.dataframe(tru.get_leaderboard(app_ids=[]))
+#     st.dataframe(feedback)
