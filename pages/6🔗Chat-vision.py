@@ -163,36 +163,36 @@ if uploaded_file is not None:
             st.write(image_analysis)
 
 
-'''
-tru = Tru()
-tru.reset_database()
 
-openai_api_key = os.getenv("OPENAI_API_KEY")
+# tru = Tru()
+# tru.reset_database()
 
-#Initialize LiteLLM-based feedback function collection class:
-litellm = LiteLLM(model_engine="chat-bison")
+# openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# Define a relevance function using LiteLLM
-relevance = Feedback(litellm.relevance_with_cot_reasons).on_input_output()
+# #Initialize LiteLLM-based feedback function collection class:
+# litellm = LiteLLM(model_engine="chat-bison")
 
-tru_recorder = TruChain(executor,
-    app_id='Chain1_ChatApplication',
-    feedbacks=[relevance])
+# # Define a relevance function using LiteLLM
+# relevance = Feedback(litellm.relevance_with_cot_reasons).on_input_output()
+
+# tru_recorder = TruChain(executor,
+#     app_id='Chain1_ChatApplication',
+#     feedbacks=[relevance])
 
 
-evaluation_queries = [
-    "What are effective pest management strategies for organic vegetable farming?",
-    "How can soil health be improved for sustainable crop production?"
-]
+# evaluation_queries = [
+#     "What are effective pest management strategies for organic vegetable farming?",
+#     "How can soil health be improved for sustainable crop production?"
+# ]
 
-for query in evaluation_queries:
-    with tru_recorder as recording:
-        llm_response = executor(query)
-        print(llm_response)
+# for query in evaluation_queries:
+#     with tru_recorder as recording:
+#         llm_response = executor(query)
+#         print(llm_response)
 
-tru.run_dashboard()
-tru.get_records_and_feedback(app_ids=[])[0]
-'''
+# tru.run_dashboard()
+# tru.get_records_and_feedback(app_ids=[])[0]
+
 
 # Chat interaction
 if prompt := st.chat_input("Ask a question or request specific advice about your farm:"):
