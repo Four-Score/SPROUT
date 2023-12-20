@@ -22,8 +22,6 @@ from langchain.chat_models import ChatVertexAI
 from langchain.memory import ConversationBufferMemory, StreamlitChatMessageHistory
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
-from openai import OpenAI
-from trulens_eval import TruChain, Feedback, Tru, LiteLLM, Provider, Select
 
 load_dotenv()  # load environment variables from .env
 
@@ -165,7 +163,7 @@ if uploaded_file is not None:
             st.write(image_analysis)
 
 
-
+'''
 tru = Tru()
 tru.reset_database()
 
@@ -194,6 +192,7 @@ for query in evaluation_queries:
 
 tru.run_dashboard()
 tru.get_records_and_feedback(app_ids=[])[0]
+'''
 
 # Chat interaction
 if prompt := st.chat_input("Ask a question or request specific advice about your farm:"):
